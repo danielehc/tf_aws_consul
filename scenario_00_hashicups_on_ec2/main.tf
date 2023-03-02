@@ -10,23 +10,55 @@ resource "aws_vpc" "vpc" {
   }
 }
 
+resource "aws_subnet" "subnet1" {
+  # cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 3, 1)
+  cidr_block          = "10.0.0.0/24"  
+  vpc_id            = aws_vpc.vpc.id
+  availability_zone = var.aws_availabilityzone
+
+  tags = {
+    Name = "Public Subnet"
+  }
+}
+
+resource "aws_subnet" "subnet2" {
+  # cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 3, 1)
+  cidr_block          = "10.0.1.0/24"  
+  vpc_id            = aws_vpc.vpc.id
+  availability_zone = var.aws_availabilityzone
+
+  tags = {
+    Name = "Private Subnet"
+  }
+}
 
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name = "main"
+    Name = "Internet Gateway"
   }
 }
 
-resource "aws_default_route_table" "route_table" {
-  default_route_table_id = aws_vpc.vpc.default_route_table_id
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.vpc.id
+  # default_route_table_id = aws_vpc.vpc.default_route_table_id
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
+
+  tags = {
+    Name = "Default Route Table"
+  }
 }
 
+resource "aws_route_table_association" "rt-ig-association" {
+  subnet_id      = aws_subnet.subnet1.id
+  route_table_id = aws_route_table.route_table.id
+}
+
+## Allow SSH connection
 resource "aws_security_group" "ingress-ssh" {
   name   = "allow-all-sg"
   vpc_id = aws_vpc.vpc.id
@@ -47,9 +79,12 @@ resource "aws_security_group" "ingress-ssh" {
   }
 }
 
-resource "aws_security_group" "ingress-web" {
-  name   = "allow-web-sg"
+## Allow HTTP[s] connection. Used fro NGINX, Ingress GW, and API GW
+resource "aws_security_group" "ingress-http" {
+  name   = "allow-http-sg"
   vpc_id = aws_vpc.vpc.id
+  
+  # Allow HTTP ingress
   ingress {
     cidr_blocks = [
       "0.0.0.0/0"
@@ -58,26 +93,17 @@ resource "aws_security_group" "ingress-web" {
     to_port   = 80
     protocol  = "tcp"
   }
-  // Terraform removes the default rule
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 
-resource "aws_security_group" "ingress-db" {
-  name   = "allow-db-sg"
-  vpc_id = aws_vpc.vpc.id
+  # Allow HTTPS ingress
   ingress {
     cidr_blocks = [
       "0.0.0.0/0"
     ]
-    from_port = 5432
-    to_port   = 5432
+    from_port = 443
+    to_port   = 443
     protocol  = "tcp"
   }
+
   // Terraform removes the default rule
   egress {
     from_port   = 0
@@ -87,33 +113,13 @@ resource "aws_security_group" "ingress-db" {
   }
 }
 
-resource "aws_security_group" "ingress-api" {
-  name   = "allow-api-sg"
-  vpc_id = aws_vpc.vpc.id
-  ingress {
-    cidr_blocks = [
-      "0.0.0.0/0"
-    ]
-    from_port = 8081
-    to_port   = 8081
-    protocol  = "tcp"
-  }
-  // Terraform removes the default rule
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
+## Allow frontend traffic from LB
 resource "aws_security_group" "ingress-fe" {
   name   = "allow-fe-sg"
   vpc_id = aws_vpc.vpc.id
   ingress {
-    cidr_blocks = [
-      "0.0.0.0/0"
-    ]
+    # cidr_blocks = [ "0.0.0.0/0" ]
+    security_groups = [aws_security_group.ingress-http.id]
     from_port = 3000
     to_port   = 3000
     protocol  = "tcp"
@@ -127,14 +133,47 @@ resource "aws_security_group" "ingress-fe" {
   }
 }
 
-
-resource "aws_subnet" "subnet1" {
-  cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 3, 1)
-  vpc_id            = aws_vpc.vpc.id
-  availability_zone = var.aws_availabilityzone
+## Allow API traffic from Frontend
+resource "aws_security_group" "ingress-api" {
+  name   = "allow-api-sg"
+  vpc_id = aws_vpc.vpc.id
+  ingress {
+    # cidr_blocks = [ "0.0.0.0/0" ]
+    security_groups = [aws_security_group.ingress-fe.id]
+    from_port = 8081
+    to_port   = 8081
+    protocol  = "tcp"
+  }
+  // Terraform removes the default rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-# Debian 11 Bullseye
+## Allow DB traffic from API
+resource "aws_security_group" "ingress-db" {
+  name   = "allow-db-sg"
+  vpc_id = aws_vpc.vpc.id
+  ingress {
+     # cidr_blocks = [ "0.0.0.0/0" ]
+    security_groups = [aws_security_group.ingress-api.id]
+    from_port = 5432
+    to_port   = 5432
+    protocol  = "tcp"
+  }
+  // Terraform removes the default rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# AMI: Debian 11 Bullseye
 data "aws_ami" "debian-11" {
   most_recent = true
   owners = ["136693071363"]
@@ -174,7 +213,6 @@ resource "aws_instance" "operator" {
 }
 
 ## Consul Servers
-
 resource "aws_instance" "consul_server" {
   count                       = var.server_number  
   ami                         = data.aws_ami.debian-11.id
@@ -182,7 +220,7 @@ resource "aws_instance" "consul_server" {
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.keypair.id
   vpc_security_group_ids      = [aws_security_group.ingress-ssh.id]
-  subnet_id                   = aws_subnet.subnet1.id
+  subnet_id                   = aws_subnet.subnet2.id
 
   tags = {
     Name = "consul-server-${count.index}"
@@ -212,7 +250,7 @@ resource "aws_instance" "database" {
                                   aws_security_group.ingress-ssh.id,
                                   aws_security_group.ingress-db.id
                                 ]
-  subnet_id                   = aws_subnet.subnet1.id
+  subnet_id                   = aws_subnet.subnet2.id
 
   tags = {
     Name = "database"
@@ -241,7 +279,7 @@ resource "aws_instance" "api" {
                                   aws_security_group.ingress-ssh.id,
                                   aws_security_group.ingress-api.id
                                 ]
-  subnet_id                   = aws_subnet.subnet1.id
+  subnet_id                   = aws_subnet.subnet2.id
 
   tags = {
     Name = "api"
@@ -255,7 +293,8 @@ resource "aws_instance" "api" {
         VERSION_PAY = var.api_payments_version,
         VERSION_PROD = var.api_product_version,
         VERSION_PUB = var.api_public_version,
-        DB_HOST = aws_instance.database.public_ip,
+        # DB_HOST = aws_instance.database.public_ip,
+        DB_HOST = aws_instance.database.private_ip,
         PRODUCT_API_HOST = "localhost",
         PAYMENT_API_HOST = "localhost"
     }))
@@ -275,7 +314,7 @@ resource "aws_instance" "frontend" {
                                   aws_security_group.ingress-ssh.id,
                                   aws_security_group.ingress-fe.id
                                 ]
-  subnet_id                   = aws_subnet.subnet1.id
+  subnet_id                   = aws_subnet.subnet2.id
 
   tags = {
     Name = "frontend"
@@ -287,7 +326,7 @@ resource "aws_instance" "frontend" {
     hostname = "frontend",
     app_script = base64gzip(templatefile("${path.module}/scripts/start_fe.sh.tmpl", {
         VERSION = var.fe_version,
-        API_HOST = aws_instance.api.public_ip
+        API_HOST = aws_instance.api.private_ip
     }))
   })
 }
@@ -303,7 +342,7 @@ resource "aws_instance" "nginx" {
   key_name                    = aws_key_pair.keypair.id
   vpc_security_group_ids      = [
                                   aws_security_group.ingress-ssh.id,
-                                  aws_security_group.ingress-web.id
+                                  aws_security_group.ingress-http.id
                                 ]
   subnet_id                   = aws_subnet.subnet1.id
 
@@ -316,8 +355,8 @@ resource "aws_instance" "nginx" {
     ssh_private_key = base64gzip(file("${path.module}/certs/id_rsa")),
     hostname = "nginx",
     app_script = base64gzip(templatefile("${path.module}/scripts/start_nginx.sh.tmpl", {
-        PUBLIC_API_HOST = aws_instance.api.public_ip
-        FE_HOST = aws_instance.frontend.public_ip
+        PUBLIC_API_HOST = aws_instance.api.private_ip
+        FE_HOST = aws_instance.frontend.private_ip
     }))
   })
 }
