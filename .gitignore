@@ -1,0 +1,4 @@
+**/certs/**
+**/logs/**
+.terraform*
+terraform.tfstate*
