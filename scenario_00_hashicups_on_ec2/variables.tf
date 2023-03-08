@@ -31,10 +31,12 @@ variable "consul_domain" {
   default = "consul"
 }
 
-# variable "consul_version" {
-#   description = "Consul version to install on VMs"
-#   default = "1.15"
-# }
+variable "consul_version" {
+  description = "Consul version to install on VMs"
+  default = "1.15"
+}
+
+
 
 variable "server_number" {
   description = "Number of Consul servers to deploy. Should be 1, 3, 5, 7."
@@ -42,7 +44,6 @@ variable "server_number" {
 }
 
 ## HashiCups tuning
-
 variable "db_version" {
   description = "Version for the HashiCups DB image to be deployed"
   default = "v0.0.22"

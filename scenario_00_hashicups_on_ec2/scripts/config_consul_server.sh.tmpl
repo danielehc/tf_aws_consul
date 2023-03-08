@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+CONSUL_CONFIG_DIR="/etc/consul.d/"
+
+## Remove pre-existing consul configuration
+rm -rf /etc/consul.d/*
+rm -rf /opt/consul/*
+
+
+# Generate Certificates
+echo -n "${CA_CERT}" > /etc/consul.d/consul-agent-ca.pem
+echo -n "${TLS_CERT}" > /etc/consul.d/consul-agent.pem
+echo -n "${TLS_CERT_KEY}" > /etc/consul.d/consul-agent-key.pem
+
+# "Generate gossip encryption key"
+echo encrypt = \"${GOSSIP_KEY}\" > $${CONSUL_CONFIG_DIR}agent-gossip-encryption.hcl
+
+# "Generate agent configuration"
+tee $${CONSUL_CONFIG_DIR}agent-server-secure.hcl > /dev/null << EOF
+# agent-server-secure.hcl
+
+# Data Persistence
+data_dir = "/opt/consul"
+
+# Logging
+log_level = "DEBUG"
+
+# Enable service mesh
+connect {
+  enabled = true
+}
+
+# Addresses and ports
+addresses {
+  grpc = "127.0.0.1"
+  http = "127.0.0.1"
+  // http = "0.0.0.0"
+  https = "0.0.0.0"
+  dns = "127.0.0.1"
+}
+
+ports {
+  grpc  = 8502
+  http  = 8500
+  https = 8501
+  dns   = 8600
+}
+
+# Join other Consul agents
+${JOIN_STRING}
+
+# DNS recursors
+recursors = ["1.1.1.1"]
+
+## Disable script checks
+enable_script_checks = false
+
+## Enable local script checks
+enable_local_script_checks = true
+EOF
+
+# "Generate TLS configuration"
+tee $${CONSUL_CONFIG_DIR}agent-server-tls.hcl > /dev/null << EOF
+## TLS Encryption (requires cert files to be present on the server nodes)
+tls {
+  defaults {
+    ca_file   = "/etc/consul.d/consul-agent-ca.pem"
+    cert_file = "/etc/consul.d/consul-agent.pem"
+    key_file  = "/etc/consul.d/consul-agent-key.pem"
+
+    verify_outgoing        = true
+    verify_incoming        = true
+  }
+  https {
+    verify_incoming        = false
+  }
+  internal_rpc {
+    verify_server_hostname = true
+  }
+}
+
+auto_encrypt {
+  allow_tls = true
+}
+EOF
+
+# "Generate ACL configuration"
+tee $${CONSUL_CONFIG_DIR}agent-server-acl.hcl > /dev/null << EOF
+## ACL configuration
+acl = {
+  enabled = true
+  default_policy = "deny"
+  enable_token_persistence = true
+  enable_token_replication = true
+  down_policy = "extend-cache"
+}
+EOF
+
+# Generate default management token config
+
+
+# "Generate server specific configuration"
+tee $${CONSUL_CONFIG_DIR}agent-server-specific.hcl > /dev/null << EOF
+## Server specific configuration for ${DATACENTER}
+server = true
+bootstrap_expect = ${SERVER_NUMBER}
+datacenter = "${DATACENTER}"
+domain = "${DOMAIN}"
+
+client_addr = "127.0.0.1"
+
+## UI configuration (1.9+)
+ui_config {
+  enabled = true
+  dashboard_url_templates {
+    service = "http://172.20.0.9:3000/d/hashicups/hashicups?orgId=1&var-service={{Service.Name}}"
+  }
+  metrics_provider = "prometheus"
+  metrics_proxy {
+    base_url = "http://172.20.0.10:9009/prometheus"
+    path_allowlist = ["/api/v1/query_range", "/api/v1/query", "/prometheus/api/v1/query_range", "/prometheus/api/v1/query"]
+  }
+}
+EOF
+
+## TODO How to resolve grafana URL instead of IP?
+
+# 3000/d/hashicups/hashicups?orgId=1&var-service=hashicups-api&var-cluster=All&refresh=30s
+
+# "Generating Consul server telemetry config"
+tee $${CONSUL_CONFIG_DIR}agent-server-telemetry.hcl > /dev/null << EOF
+telemetry {
+  prometheus_retention_time = "60s"
+  disable_hostname = true
+}
+EOF
+
+## Assign right ownership on config files
+chown consul:consul /etc/consul.d/*
