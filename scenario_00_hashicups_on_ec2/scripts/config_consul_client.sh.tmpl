@@ -30,7 +30,7 @@ data_dir = "/etc/consul/data"
 #client_addr = "127.0.0.1"
 
 # Join other Consul agents
-${JOIN_STRING}
+retry_join = [ ${JOIN_STRING} ]
 
 # retry_join = [ "$${SERVER_NAME}$${FQDN_SUFFIX}" ]
 

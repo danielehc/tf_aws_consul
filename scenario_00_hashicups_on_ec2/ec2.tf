@@ -1,3 +1,7 @@
+#------------------------------------------------------------------------------#
+## AMI(s)
+#------------------------------------------------------------------------------#
+
 # Debian 11 Bullseye AMI
 data "aws_ami" "debian-11" {
   most_recent = true
@@ -12,9 +16,10 @@ data "aws_ami" "debian-11" {
   }
 }
 
-#
+#------------------------------------------------------------------------------#
 ## Bastion host
-#
+#------------------------------------------------------------------------------#
+
 resource "aws_instance" "bastion" {
   ami                         = data.aws_ami.debian-11.id
   associate_public_ip_address = true
@@ -38,9 +43,10 @@ resource "aws_instance" "bastion" {
 
 }
 
-#
+#------------------------------------------------------------------------------#
 ## Consul Server(s)
-#
+#------------------------------------------------------------------------------#
+
 resource "aws_instance" "consul_server" {
   count                       = var.server_number  
   ami                         = data.aws_ami.debian-11.id
@@ -51,7 +57,8 @@ resource "aws_instance" "consul_server" {
   subnet_id                   = module.vpc.public_subnets[0]
 
   tags = {
-    Name = "consul-server-${count.index}"
+    Name = "consul-server-${count.index}",
+    ConsulAutoJoin = "auto-join"
   }
 
   user_data = templatefile("${path.module}/scripts/user_data.tmpl", {
@@ -61,20 +68,21 @@ resource "aws_instance" "consul_server" {
     consul_version = "${var.consul_version}",
     app_script = "",
     consul_config_script = base64gzip(templatefile("${path.module}/scripts/config_consul_server.sh.tmpl", {
-      DATACENTER = "${var.consul_datacenter}",
-      DOMAIN = "${var.consul_domain}",
-      GOSSIP_KEY = "${random_id.gossip_key.b64_std}",
+      DATACENTER    = "${var.consul_datacenter}",
+      DOMAIN        = "${var.consul_domain}",
+      GOSSIP_KEY    = "${random_id.gossip_key.b64_std}",
       SERVER_NUMBER = "${var.server_number}",
-      CA_CERT = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      TLS_CERT = base64gzip("${tls_locally_signed_cert.server_cert.cert_pem}"),
-      TLS_CERT_KEY = base64gzip("${tls_private_key.server_cert.private_key_pem}"),
-      JOIN_STRING= ""
+      CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
+      TLS_CERT      = base64gzip("${tls_locally_signed_cert.server_cert.cert_pem}"),
+      TLS_CERT_KEY  = base64gzip("${tls_private_key.server_cert.private_key_pem}"),
+      JOIN_STRING   = "${var.retry_join}"
     }))
   })
 }
 
-
+#------------------------------------------------------------------------------#
 ## HashiCups
+#------------------------------------------------------------------------------#
 
 #------------#
 #  DATABASE  #
@@ -101,14 +109,14 @@ resource "aws_instance" "database" {
         VERSION = var.db_version
     })),
     consul_config_script = base64gzip(templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", {
-      DATACENTER = "${var.consul_datacenter}",
-      DOMAIN = "${var.consul_domain}",
-      GOSSIP_KEY = "${random_id.gossip_key.b64_std}",
+      DATACENTER  = "${var.consul_datacenter}",
+      DOMAIN      = "${var.consul_domain}",
+      GOSSIP_KEY  = "${random_id.gossip_key.b64_std}",
+      CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
+      JOIN_STRING = "${var.retry_join}"
       # SERVER_NUMBER = "",
-      CA_CERT = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
       # TLS_CERT = "",
       # TLS_CERT_KEY = "",
-      JOIN_STRING= ""
     }))
   })
 }
@@ -128,7 +136,7 @@ resource "aws_instance" "api" {
   subnet_id                   = module.vpc.public_subnets[0]
 
   tags = {
-    Name = "api"
+    Name = "api"    
   }
 
   user_data = templatefile("${path.module}/scripts/user_data.tmpl", {

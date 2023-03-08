@@ -20,7 +20,7 @@ runcmd:
  - wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
  - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
  - sudo apt update 
- - APT_VERS=`apt-cache show consul | grep Version | awk '{print $2}' | grep ${consul_version} | sort -r | head -1`; if [ "$${APT_VERS}"  == "" ] || [ "${consul_version}" == "latest" ]; then export VERS=""; else export VERS="=$${APT_VERS}"; fi
+ - APT_VERS=`sudo apt-cache show consul | grep Version | awk '{print $2}' | grep "^${consul_version}" | sort -r -V | head -1`; if [ "$${APT_VERS}"  = "" -o "${consul_version}" = "latest" ]; then export VERS=""; else export VERS="=$${APT_VERS}"; fi
  - sudo apt-get install --assume-yes consul$${VERS}
  - usermod -aG consul admin
  - chmod g+w /etc/consul.d

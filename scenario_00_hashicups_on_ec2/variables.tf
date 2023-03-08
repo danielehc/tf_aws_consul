@@ -20,7 +20,9 @@ variable "vpc_region" {
   default = "us-west-2"
 }
 
+#------------------------------------------------------------------------------#
 ## Consul tuning
+#------------------------------------------------------------------------------#
 variable "consul_datacenter" {
   description = "Consul datacenter"
   default = "dc1"
@@ -31,19 +33,30 @@ variable "consul_domain" {
   default = "consul"
 }
 
+# Consul version to install on the clients. Supports:
+# - exact version         "x.y.z" (e.g. "1.15.0")
+# - latest minor version  "x.y"   (e.g. "1.14" for latest minor vesrion for 1.14)
+# - latest version        "latest"
 variable "consul_version" {
   description = "Consul version to install on VMs"
-  default = "1.15"
+  default = "latest"
 }
-
-
 
 variable "server_number" {
   description = "Number of Consul servers to deploy. Should be 1, 3, 5, 7."
   default = "3"
 }
 
+variable "retry_join" {
+  description = "Used by Consul to automatically join other nodes."
+  type        = string
+  default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
+}
+
+#------------------------------------------------------------------------------#
 ## HashiCups tuning
+#------------------------------------------------------------------------------#
+
 variable "db_version" {
   description = "Version for the HashiCups DB image to be deployed"
   default = "v0.0.22"
@@ -69,6 +82,6 @@ variable "fe_version" {
   default = "v1.0.9"
 }
 
-variable "hostname" {
-  default = "bastion"
-}
+# variable "hostname" {
+#   default = "bastion"
+# }

@@ -47,7 +47,7 @@ ports {
 }
 
 # Join other Consul agents
-${JOIN_STRING}
+retry_join = [ ${JOIN_STRING} ]
 
 # DNS recursors
 recursors = ["1.1.1.1"]
