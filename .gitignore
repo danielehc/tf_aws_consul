@@ -2,4 +2,4 @@
 **/logs/**
 .terraform*
 terraform.tfstate*
-**.pem
+*.pem
