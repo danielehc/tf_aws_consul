@@ -2,7 +2,6 @@
 
 ## Scenario 0 - HashiCups
 
-
 1. Initialize Terraform
     ```
     terraform init

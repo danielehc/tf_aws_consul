@@ -12,7 +12,7 @@ resource "aws_key_pair" "keypair" {
 
   # Create "id_rsa.pem" in local directory
   provisioner "local-exec" { 
-    command = "rm -rf id_rsa.pem && echo '${tls_private_key.keypair_private_key.private_key_pem}' > id_rsa.pem && chmod 400 id_rsa.pem"
+    command = "rm -rf certs/id_rsa.pem && echo '${tls_private_key.keypair_private_key.private_key_pem}' > certs/id_rsa.pem && chmod 400 certs/id_rsa.pem"
   }
 }
 
@@ -50,7 +50,7 @@ resource "tls_self_signed_cert" "ca" {
 
 resource "local_file" "ca_public_key" {
   content  = "${tls_self_signed_cert.ca.cert_pem}"
-  filename = "consul-agent-ca.pem"#"${var.ca_public_key_path}"
+  filename = "certs/consul-agent-ca.pem"#"${var.ca_public_key_path}"
 }
 
 #------------------------------------------------------------------------------#
