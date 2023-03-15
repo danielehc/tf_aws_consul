@@ -53,6 +53,24 @@ variable "retry_join" {
   default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
 }
 
+# variable "config_mesh_services" {
+#   description = "Used by Consul to automatically join other nodes."
+#   type        = string
+#   default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
+# }
+
+variable "auto_acl_bootstrap" {
+  description = "If set to true, creates server config with pre-set bootstrap token"
+   type   = bool
+   default = true
+}
+
+variable "config_services_for_mesh" {
+  description = "If set to true, it will use mesh configuration for Consul services"
+   type   = bool
+   default = false
+}
+
 #------------------------------------------------------------------------------#
 ## HashiCups tuning
 #------------------------------------------------------------------------------#

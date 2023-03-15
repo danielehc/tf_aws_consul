@@ -124,3 +124,93 @@ resource "aws_security_group" "ingress-fe" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_security_group" "consul-agents" {
+  name   = "allow-consul-agents-sg"
+  vpc_id = module.vpc.vpc_id
+
+  # allow_serf_lan_tcp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8301
+    to_port   = 8301
+    protocol  = "tcp"
+  }
+
+  # allow_serf_lan_udp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8301
+    to_port   = 8301
+    protocol  = "udp"
+  }
+
+  // Terraform removes the default rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "consul-servers" {
+  name   = "allow-consul-servers-sg"
+  vpc_id = module.vpc.vpc_id
+
+  # allow_server_rcp_tcp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8300
+    to_port   = 8300
+    protocol  = "tcp"
+  }
+
+  # allow_server_http_and_grpc_inbound - HTTP:8500 | HTTPS:8501 | GRPC:8502 | GRPCS:8503
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8500
+    to_port   = 8503
+    protocol  = "tcp"
+  }
+
+  # allow_serf_wan_tcp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8302
+    to_port   = 8302
+    protocol  = "tcp"
+  }
+
+  # allow_serf_wan_udp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8302
+    to_port   = 8302
+    protocol  = "udp"
+  }
+
+  # allow_dns_tcp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8600
+    to_port   = 8600
+    protocol  = "tcp"
+  }
+
+  # allow_dns_udp_inbound
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8600
+    to_port   = 8600
+    protocol  = "udp"
+  }
+
+  // Terraform removes the default rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}

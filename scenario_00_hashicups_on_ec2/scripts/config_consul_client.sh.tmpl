@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
 CONSUL_CONFIG_DIR="/etc/consul.d/"
+CONSUL_DATA_DIR="/opt/consul/"
+CONSUL_TEMP_CONFIG_DIR="/home/admin/consul_services"
 
 ## Remove pre-existing consul configuration
-rm -rf /etc/consul.d/*
-rm -rf /opt/consul/*
+rm -rf $${CONSUL_CONFIG_DIR}*
+rm -rf $${CONSUL_DATA_DIR}*
+
+mkdir -p $${CONSUL_TEMP_CONFIG_DIR}
+rm -rf $${CONSUL_TEMP_CONFIG_DIR}*
 
 # Generate Certificates
 echo -n "${CA_CERT}" > /etc/consul.d/consul-agent-ca.pem
@@ -12,17 +17,17 @@ echo -n "${CA_CERT}" > /etc/consul.d/consul-agent-ca.pem
 # "Generate gossip encryption key"
 echo encrypt = \"${GOSSIP_KEY}\" > $${CONSUL_CONFIG_DIR}agent-gossip-encryption.hcl
 
-## Generate CLient configration file
-tee $${CONSUL_CONFIG_DIR}agent-client-secure.hcl > /dev/null << EOF
+## Generate Client configration file
+tee $${CONSUL_CONFIG_DIR}consul.hcl > /dev/null << EOF
 ## agent-client-secure.hcl
-
-# 
+ 
 server = false
 datacenter = "${DATACENTER}"
 domain = "${DOMAIN}" 
 
 # Logging
-log_level = "TRACE"
+log_level = "DEBUG"
+enable_syslog = true
 
 # Data persistence
 data_dir = "/etc/consul/data"
@@ -32,10 +37,9 @@ data_dir = "/etc/consul/data"
 # Join other Consul agents
 retry_join = [ ${JOIN_STRING} ]
 
-# retry_join = [ "$${SERVER_NAME}$${FQDN_SUFFIX}" ]
-
 # Ports
 ports {
+  grpc_tls  = 8502
   grpc  = 8502
   http  = 8500
   # https = 443
@@ -56,7 +60,6 @@ enable_local_script_checks = true
 
 # Enable central service config
 enable_central_service_config = true
-
 
 ## TLS Encryption
 tls {
@@ -93,3 +96,8 @@ EOF
 #   }
 # }
 # EOF
+
+## Generate Consul service config
+
+
+

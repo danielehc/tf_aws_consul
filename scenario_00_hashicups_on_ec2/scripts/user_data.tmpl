@@ -9,9 +9,25 @@ packages:
   - gnupg-agent
   - software-properties-common
   - jq
+  - dnsutils
+write_files:
+  - path: /etc/hosts
+    content: | 
+      
+      # Added to resolve new hostname
+      127.0.0.1  ${hostname}
+    append: true
 runcmd:
 # set hostname
  - hostnamectl set-hostname --static ${hostname}
+# Provision certificates
+ - cd /home/admin
+ - mkdir -p certs
+ - echo "${ssh_public_key}" | base64 -d | zcat > certs/id_rsa.pub
+ - echo "${ssh_private_key}" | base64 -d | zcat > certs/id_rsa
+# Make scripts executable
+- chown admin:admin *.sh
+- chmod +x *.sh
 # Install Docker
  - curl -fsSL https://get.docker.com | sh
  - usermod -aG docker admin
@@ -24,19 +40,34 @@ runcmd:
  - sudo apt-get install --assume-yes consul$${VERS}
  - usermod -aG consul admin
  - chmod g+w /etc/consul.d
+ - sudo cp /usr/lib/systemd/system/consul.service /etc/systemd/system/consul.service
+# Install Envoy (requires Consul binary and Docker)
+ - cd /home/admin
+ #- echo "$${install_envoy_script}" | base64 -d | zcat > install_envoy.sh
+ - chown admin:admin install_envoy.sh
+ - chmod +x install_envoy.sh
+ - ./install_envoy.sh
+# Install Grafana agent
+ - wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/grafana.gpg
+ - echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+ - sudo apt update && sudo apt-get install grafana-agent
 # Configure Consul
  - cd /home/admin
  - echo "${consul_config_script}" | base64 -d | zcat > consul_config.sh
  - chown admin:admin consul_config.sh
  - chmod +x consul_config.sh
  - ./consul_config.sh
-# Install Grafana agent
- - wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/grafana.gpg
- - echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
- - sudo apt update && sudo apt-get install grafana-agent
+# Configure Consul services
+ - cd /home/admin
+ - echo "${svc_config_script}" | base64 -d | zcat > service_config.sh
+ - chown admin:admin service_config.sh
+ - chmod +x service_config.sh
+ - ./service_config.sh
 # Start Application
  - cd /home/admin
  - echo "${app_script}" | base64 -d | zcat > start_app.sh
  - chown admin:admin start_app.sh
  - chmod +x start_app.sh
  - ./start_app.sh
+# Start Consul agents
+ - cd /home/admin
