@@ -53,16 +53,27 @@ variable "retry_join" {
   default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
 }
 
-# variable "config_mesh_services" {
-#   description = "Used by Consul to automatically join other nodes."
-#   type        = string
-#   default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
-# }
+#------------------------------------------------------------------------------#
+## Consul Flow
+#------------------------------------------------------------------------------#
+
+variable "autostart_control_plane" {
+  description = "If set to true, starts Consul servers automatically"
+  type   = bool
+  default = true
+}
+
+// TODO
+variable "autostart_data_plane" {
+  description = "If set to true, starts Consul clients automatically"
+  type   = bool
+  default = false
+}
 
 variable "auto_acl_bootstrap" {
   description = "If set to true, creates server config with pre-set bootstrap token"
-   type   = bool
-   default = true
+  type   = bool
+  default = true
 }
 
 variable "config_services_for_mesh" {
@@ -99,7 +110,3 @@ variable "fe_version" {
   description = "Version for the HashiCups Frontend image to be deployed"
   default = "v1.0.9"
 }
-
-# variable "hostname" {
-#   default = "bastion"
-# }

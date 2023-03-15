@@ -128,7 +128,7 @@ acl = {
   tokens {
     initial_management  = "${ACL_BOOTSTRAP}"
     agent               = "${ACL_BOOTSTRAP}"
-    default             = "${ACL_BOOTSTRAP}"
+    // default             = "${ACL_BOOTSTRAP}"
   }
 }
 EOF
@@ -180,3 +180,5 @@ EOF
 
 ## Assign right ownership on config files
 chown consul:consul /etc/consul.d/*
+
+

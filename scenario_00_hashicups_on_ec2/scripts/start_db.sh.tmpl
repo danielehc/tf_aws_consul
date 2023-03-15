@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+docker rm -f hashicups-db
+
 docker run \
 -d \
 --network host \

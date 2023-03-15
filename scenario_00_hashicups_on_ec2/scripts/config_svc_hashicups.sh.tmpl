@@ -1,3 +1,161 @@
 #!/usr/bin/env bash
 
+# | Service       | PORT    | Upstream
+# | ------------- | ------- | -----------------------
+# | database      | 5432    | []
+# | api           | -       | [database]
+# |   - payments  | 8080    | 
+# |   - product   | 9090    | 
+# |   - public    | 8081    | 
+# | frontend      | 3000    | [api.public]
+# | nginx         | 80      | [frontend, api.public]
+
+
+
+## Example SD single check
+#------------------------------------------------------------------------------#
+
+# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
+# ## svc-${SERVICE}.hcl
+# service {
+#   name = "${SERVICE}"
+#   id = "${SERVICE}-1"
+#   tags = ["v1"]
+#   port = 5432
+  
+#   check {
+#     id =  "check-${SERVICE}",
+#     name = "Product ${SERVICE} status check",
+#     service_id = "${SERVICE}-1",
+#     tcp  = "localhost:5432",
+#     interval = "1s",
+#     timeout = "1s"
+#   }
+# }
+# EOF
+
+## Example - Mesh - Single Check - No Upstream
+#------------------------------------------------------------------------------#
+
+# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
+# ## svc-${SERVICE}.hcl
+# service {
+#   name = "${SERVICE}"
+#   id = "${SERVICE}-1"
+#   tags = ["v1"]
+#   port = 5432
+  
+#   connect {
+#     sidecar_service {}
+#   }  
+  
+#   check {
+#     id =  "check-${SERVICE}",
+#     name = "Product ${SERVICE} status check",
+#     service_id = "${SERVICE}-1",
+#     tcp  = "localhost:5432",
+#     interval = "1s",
+#     timeout = "1s"
+#  #------------------------------------------------------------------------------# }
+# }
+# EOF
+
+## Example - Mesh - Multi Check - Single Upstream
+#------------------------------------------------------------------------------#
+
+# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
+# ## svc-${SERVICE}.hcl
+# service {
+#   name = "${SERVICE}"
+#   id = "${SERVICE}-1"
+#   tags = ["v1"]
+#   port = 8081
+  
+#   connect {
+#     sidecar_service {
+#       proxy {
+#         upstreams = [
+#           {
+#             destination_name = "hashicups-db"
+#             local_bind_port = 5432
+#           }
+#         ]
+#       }
+#     }
+#   }
+
+#   checks =[ 
+#     {
+#       id =  "check-${SERVICE}",
+#       name = "Product ${SERVICE} status check",
+#       service_id = "${SERVICE}-1",
+#       tcp  = "localhost:8081",
+#       interval = "1s",
+#       timeout = "1s"
+#     },
+#     {
+#       id =  "check-${SERVICE}-1",
+#       name = "Product ${SERVICE} status check 1",
+#       service_id = "${SERVICE}-1",
+#       tcp  = "${SERVICE}${FQDN_SUFFIX}:8080",
+#       interval = "1s",
+#       timeout = "1s"
+#     },
+#     {
+#       id =  "check-${SERVICE}-2",
+#       name = "Product ${SERVICE} status check 2",
+#       service_id = "${SERVICE}-1",
+#       tcp  = "localhost:9090",
+#       interval = "1s",
+#       timeout = "1s"
+#     }
+#   ]
+# }
+# EOF
+
+
+## Example - Mesh - Single Check - Multi Upstream
+#------------------------------------------------------------------------------#
+
+# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
+# ## svc-${SERVICE}.hcl
+# service {
+#   name = "${SERVICE}"
+#   id = "${SERVICE}-1"
+#   tags = ["v1"]
+#   port = 80
+  
+#   connect {
+#     sidecar_service {
+#       proxy {
+#         upstreams = [
+#           {
+#             destination_name = "hashicups-frontend"
+#             local_bind_port = 3000
+#           },
+#           {
+#             destination_name = "hashicups-api"
+#             local_bind_port = 8081
+#           }
+#         ]
+#       }
+#     }
+#   }
+
+#   check {
+#     id =  "check-${SERVICE}",
+#     name = "Product ${SERVICE} status check",
+#     service_id = "${SERVICE}-1",
+#     tcp  = "${SERVICE}${FQDN_SUFFIX}:80",
+#     interval = "1s",
+#     timeout = "1s"
+#   }
+# }
+# EOF
+
+
+
+
+
+
 echo "Hello World"

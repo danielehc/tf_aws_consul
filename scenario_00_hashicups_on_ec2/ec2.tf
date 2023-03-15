@@ -25,7 +25,10 @@ resource "aws_instance" "bastion" {
   associate_public_ip_address = true
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.keypair.id
-  vpc_security_group_ids      = [aws_security_group.ingress-ssh.id]
+  vpc_security_group_ids      = [
+                                  aws_security_group.ingress-ssh.id,
+                                  aws_security_group.ingress-monitoring-suite.id
+                                ]
   subnet_id                   = module.vpc.public_subnets[0]
 
   tags = {
@@ -36,12 +39,27 @@ resource "aws_instance" "bastion" {
     ssh_public_key        = base64gzip("${tls_private_key.keypair_private_key.public_key_openssh}"),
     ssh_private_key       = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname              = "bastion",
-    consul_version        = "${var.consul_version}",
-    install_envoy_script = base64gzip(templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })),
-    consul_config_script  = "",
-    svc_config_script     = "",
-    app_script            = ""
+    consul_version        = "${var.consul_version}"
   })
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = "${tls_private_key.keypair_private_key.private_key_pem}"
+    host        = self.public_ip
+  }
+  # file, local-exec, remote-exec
+  # Copy monitoring suite config files
+  provisioner "file" {
+    source = "conf"
+    destination = "/home/admin"
+  }
+
+  ## Start Monitoring Suite
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/start_monitoring_suite.sh.tmpl", { })
+    destination = "/home/admin/start_app.sh"      # remote machine
+  }
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
@@ -77,9 +95,25 @@ resource "aws_instance" "consul_server" {
     ssh_public_key        = base64gzip("${tls_private_key.keypair_private_key.public_key_openssh}"),
     ssh_private_key       = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname              = "consul-server-${count.index}",
-    consul_version        = "${var.consul_version}",
-    install_envoy_script = base64gzip(templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })),
-    consul_config_script  = base64gzip(templatefile("${path.module}/scripts/config_consul_server.sh.tmpl", {
+    consul_version        = "${var.consul_version}"
+  })
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = "${tls_private_key.keypair_private_key.private_key_pem}"
+    host        = self.public_ip
+  }
+  # file, local-exec, remote-exec
+  ## Install Envoy
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })
+    destination = "/home/admin/install_envoy.sh"      # remote machine
+  }
+
+  ## Configure Consul
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/config_consul_server.sh.tmpl", {
       DATACENTER      = "${var.consul_datacenter}",
       DOMAIN          = "${var.consul_domain}",
       GOSSIP_KEY      = "${random_id.gossip_key.b64_std}",
@@ -91,10 +125,9 @@ resource "aws_instance" "consul_server" {
       GRAFANA_URI     = "${aws_instance.bastion.public_ip}:3000",
       PROMETHEUS_URI  = "${aws_instance.bastion.public_ip}:9009"
       ACL_BOOTSTRAP   = var.auto_acl_bootstrap ? "${random_uuid.bootstrap-token.id}" : ""
-    })),
-    svc_config_script = ""
-    app_script            = ""
-  })
+    })
+    destination = "/home/admin/consul_config.sh"      # remote machine
+  }
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
@@ -131,23 +164,41 @@ resource "aws_instance" "database" {
     ssh_public_key        = base64gzip("${tls_private_key.keypair_private_key.public_key_openssh}"),
     ssh_private_key       = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname = "database",
-    consul_version = "${var.consul_version}",
-    install_envoy_script = base64gzip(templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })),
-    consul_config_script = base64gzip(templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", {
+    consul_version = "${var.consul_version}"
+  })
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = "${tls_private_key.keypair_private_key.private_key_pem}"
+    host        = self.public_ip
+  }
+  # file, local-exec, remote-exec
+  ## Install Envoy
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })
+    destination = "/home/admin/install_envoy.sh"      # remote machine
+  }
+
+  ## Configure Consul
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
       DATACENTER  = "${var.consul_datacenter}",
       DOMAIN      = "${var.consul_domain}",
       GOSSIP_KEY  = "${random_id.gossip_key.b64_std}",
       CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
       JOIN_STRING = "${var.retry_join}"
-      # SERVER_NUMBER = "",
-      # TLS_CERT = "",
-      # TLS_CERT_KEY = "",
-    })),
-    svc_config_script = "",
-    app_script = base64gzip(templatefile("${path.module}/scripts/start_db.sh.tmpl", {
-        VERSION = var.db_version
-    }))
-  })
+    })
+    destination = "/home/admin/consul_config.sh"      # remote machine
+  }
+
+  ## Start Main Application
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/start_db.sh.tmpl", { 
+      VERSION = var.db_version
+    })
+    destination = "/home/admin/start_app.sh"      # remote machine
+  }
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
@@ -180,19 +231,35 @@ resource "aws_instance" "api" {
     ssh_public_key        = base64gzip("${tls_private_key.keypair_private_key.public_key_openssh}"),
     ssh_private_key       = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname = "api",
-    consul_version = "${var.consul_version}",
-    install_envoy_script = base64gzip(templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })),
-    consul_config_script = "",
-    svc_config_script = "",
-    app_script = base64gzip(templatefile("${path.module}/scripts/start_api.sh.tmpl", {
-        VERSION_PAY = var.api_payments_version,
-        VERSION_PROD = var.api_product_version,
-        VERSION_PUB = var.api_public_version,
-        DB_HOST = aws_instance.database.private_ip,
-        PRODUCT_API_HOST = "localhost",
-        PAYMENT_API_HOST = "localhost"
-    })),
+    consul_version = "${var.consul_version}"
   })
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = "${tls_private_key.keypair_private_key.private_key_pem}"
+    host        = self.public_ip
+  }
+  # file, local-exec, remote-exec
+  ## Install Envoy
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })
+    destination = "/home/admin/install_envoy.sh"      # remote machine
+  }
+
+  ## Start Main Application
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/start_api.sh.tmpl", { 
+        VERSION_PAY       = var.api_payments_version,
+        VERSION_PROD      = var.api_product_version,
+        VERSION_PUB       = var.api_public_version,
+        DB_HOST           = aws_instance.database.private_ip,
+        PRODUCT_API_HOST  = "localhost",
+        PAYMENT_API_HOST  = "localhost"
+    })
+    destination = "/home/admin/start_app.sh"      # remote machine
+  }
+
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
@@ -225,15 +292,30 @@ resource "aws_instance" "frontend" {
     ssh_public_key        = base64gzip("${tls_private_key.keypair_private_key.public_key_openssh}"),
     ssh_private_key       = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname = "frontend",
-    consul_version = "${var.consul_version}",
-    install_envoy_script = base64gzip(templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })),
-    consul_config_script = "",
-    svc_config_script = "",
-    app_script = base64gzip(templatefile("${path.module}/scripts/start_fe.sh.tmpl", {
-        VERSION = var.fe_version,
-        API_HOST = aws_instance.api.private_ip
-    }))
+    consul_version = "${var.consul_version}"
   })
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = "${tls_private_key.keypair_private_key.private_key_pem}"
+    host        = self.public_ip
+  }
+  # file, local-exec, remote-exec
+  ## Install Envoy
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })
+    destination = "/home/admin/install_envoy.sh"      # remote machine
+  }
+
+  ## Start Main Application
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/start_fe.sh.tmpl", { 
+      VERSION = var.fe_version,
+      API_HOST = aws_instance.api.private_ip
+    })
+    destination = "/home/admin/start_app.sh"      # remote machine
+  }
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
@@ -267,15 +349,31 @@ resource "aws_instance" "nginx" {
     ssh_public_key        = base64gzip("${tls_private_key.keypair_private_key.public_key_openssh}"),
     ssh_private_key       = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname = "nginx",
-    consul_version = "${var.consul_version}",
-    install_envoy_script = base64gzip(templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })),
-    consul_config_script = "",
-    svc_config_script = "",
-    app_script = base64gzip(templatefile("${path.module}/scripts/start_nginx.sh.tmpl", {
-        PUBLIC_API_HOST = aws_instance.api.private_ip
-        FE_HOST = aws_instance.frontend.private_ip
-    }))
+    consul_version = "${var.consul_version}"
   })
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = "${tls_private_key.keypair_private_key.private_key_pem}"
+    host        = self.public_ip
+  }
+  # file, local-exec, remote-exec
+  ## Install Envoy
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/install_envoy.sh.tmpl", { })
+    destination = "/home/admin/install_envoy.sh"      # remote machine
+  }
+
+  ## Start Main Application
+  provisioner "file" {
+    content     = templatefile("${path.module}/scripts/start_nginx.sh.tmpl", { 
+      PUBLIC_API_HOST = aws_instance.api.private_ip
+      FE_HOST = aws_instance.frontend.private_ip
+    })
+    destination = "/home/admin/start_app.sh"      # remote machine
+  }
+
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
