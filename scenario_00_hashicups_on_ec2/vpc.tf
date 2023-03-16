@@ -174,6 +174,13 @@ resource "aws_security_group" "consul-servers" {
     protocol  = "tcp"
   }
 
+  ingress {
+    cidr_blocks = [ "0.0.0.0/0" ]
+    from_port = 8443
+    to_port   = 8443
+    protocol  = "tcp"
+  }
+
   # allow_serf_wan_tcp_inbound
   ingress {
     cidr_blocks = [ "0.0.0.0/0" ]

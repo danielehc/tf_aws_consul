@@ -36,14 +36,18 @@ output "consul_acl_token" {
 }
 
 output "consul_ui_url" {
-  value = "https://${aws_instance.consul_server.0.public_ip}:8501"
+  value = "https://${aws_instance.consul_server.0.public_ip}:8443"
+}
+
+locals {
+  token = var.auto_acl_bootstrap ? "${random_uuid.bootstrap-token.id}" : ""
 }
 
 output "consul_cli_config" {
   value = <<CONSULCONFIG
       
-      export CONSUL_HTTP_ADDR="https://${aws_instance.consul_server.0.public_ip}:8501"
-      export CONSUL_HTTP_TOKEN="${random_uuid.bootstrap-token.id}"
+      export CONSUL_HTTP_ADDR="https://${aws_instance.consul_server.0.public_ip}:8443"
+      export CONSUL_HTTP_TOKEN="${local.token}"
       export CONSUL_HTTP_SSL=true
       export CONSUL_CACERT="certs/consul-agent-ca.pem"
       export CONSUL_TLS_SERVER_NAME="server.${var.consul_datacenter}.${var.consul_domain}"

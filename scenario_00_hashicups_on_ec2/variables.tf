@@ -44,7 +44,7 @@ variable "consul_version" {
 
 variable "server_number" {
   description = "Number of Consul servers to deploy. Should be 1, 3, 5, 7."
-  default = "3"
+  default = "1"
 }
 
 variable "retry_join" {
@@ -60,7 +60,7 @@ variable "retry_join" {
 variable "autostart_control_plane" {
   description = "If set to true, starts Consul servers automatically"
   type   = bool
-  default = true
+  default = false
 }
 
 // TODO
@@ -73,7 +73,7 @@ variable "autostart_data_plane" {
 variable "auto_acl_bootstrap" {
   description = "If set to true, creates server config with pre-set bootstrap token"
   type   = bool
-  default = true
+  default = false
 }
 
 variable "config_services_for_mesh" {

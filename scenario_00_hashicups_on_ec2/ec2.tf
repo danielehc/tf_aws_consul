@@ -61,6 +61,11 @@ resource "aws_instance" "bastion" {
     destination = "/home/admin/start_app.sh"      # remote machine
   }
 
+  provisioner "file" {
+    source        = "${path.module}/scripts/generate_consul_server_tokens.sh"
+    destination = "/home/admin/generate_consul_server_tokens.sh"      # remote machine
+  }
+
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
   metadata_options {
@@ -129,6 +134,11 @@ resource "aws_instance" "consul_server" {
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
 
+  provisioner "file" {
+    source     = "${path.module}/scripts/generate_consul_server_tokens.sh"
+    destination = "/home/admin/generate_consul_server_tokens.sh"      # remote machine
+  }
+
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
   metadata_options {
@@ -195,9 +205,9 @@ resource "aws_instance" "database" {
   ## Configure Consul services
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_svc_hashicups.sh.tmpl", { 
-      SERVICE_NAME      = "hasicups-db",
+      SERVICE_NAME      = "hashicups-db",
       SERVICE_PORT      = "5432",
-      SERVICE_CHECKS    = "hasicups-db:localhost:5432",
+      SERVICE_CHECKS    = "hashicups-db:localhost:5432",
       SERVICE_UPSTREAMS = ""
     })
     destination = "/home/admin/service_config.sh"      # remote machine
@@ -273,10 +283,10 @@ resource "aws_instance" "api" {
   ## Configure Consul services
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_svc_hashicups.sh.tmpl", { 
-      SERVICE_NAME      = "hasicups-api"
+      SERVICE_NAME      = "hashicups-api"
       SERVICE_PORT      = "8081"
-      SERVICE_CHECKS    = "hasicups-api.public:localhost:8081,hasicups-api.product:localhost:9090,hasicups-api.payments:localhost:8080"
-      SERVICE_UPSTREAMS = "hasicups-db:5432"
+      SERVICE_CHECKS    = "hashicups-api.public:localhost:8081,hashicups-api.product:localhost:9090,hashicups-api.payments:localhost:8080"
+      SERVICE_UPSTREAMS = "hashicups-db:5432"
     })
     destination = "/home/admin/service_config.sh"      # remote machine
   }
@@ -345,11 +355,11 @@ resource "aws_instance" "frontend" {
   ## Configure Consul
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
-      DATACENTER  = "${var.consul_datacenter}",
-      DOMAIN      = "${var.consul_domain}",
-      GOSSIP_KEY  = "${random_id.gossip_key.b64_std}",
+      DATACENTER  = var.consul_datacenter,
+      DOMAIN      = var.consul_domain,
+      GOSSIP_KEY  = random_id.gossip_key.b64_std,
       CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING = "${var.retry_join}"
+      JOIN_STRING = var.retry_join
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -357,10 +367,10 @@ resource "aws_instance" "frontend" {
   ## Configure Consul services
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_svc_hashicups.sh.tmpl", { 
-      SERVICE_NAME      = "hasicups-frontend"
+      SERVICE_NAME      = "hashicups-frontend"
       SERVICE_PORT      = "3000"
-      SERVICE_CHECKS    = "hasicups-frontend:localhost:3000"
-      SERVICE_UPSTREAMS = "hasicups-api:8081" 
+      SERVICE_CHECKS    = "hashicups-frontend:localhost:3000"
+      SERVICE_UPSTREAMS = "hashicups-api:8081" 
     })
     destination = "/home/admin/service_config.sh"      # remote machine
   }
@@ -437,10 +447,10 @@ resource "aws_instance" "nginx" {
   ## Configure Consul services
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_svc_hashicups.sh.tmpl", { 
-      SERVICE_NAME="hasicups-nginx"
+      SERVICE_NAME="hashicups-nginx"
       SERVICE_PORT="80"
-      SERVICE_CHECKS="hasicups-nginx:localhost:80"
-      SERVICE_UPSTREAMS="hasicups-frontend:3000, hasicups-api:8081"
+      SERVICE_CHECKS="hashicups-nginx:localhost:80"
+      SERVICE_UPSTREAMS="hashicups-frontend:3000, hashicups-api:8081"
     })
     destination = "/home/admin/service_config.sh"      # remote machine
   }
