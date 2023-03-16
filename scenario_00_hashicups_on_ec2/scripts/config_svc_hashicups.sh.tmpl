@@ -3,159 +3,165 @@
 # | Service       | PORT    | Upstream
 # | ------------- | ------- | -----------------------
 # | database      | 5432    | []
-# | api           | -       | [database]
-# |   - payments  | 8080    | 
-# |   - product   | 9090    | 
-# |   - public    | 8081    | 
+# | api           | 8081    | [database]
+# |   - payments  |   8080  |   []
+# |   - product   |   9090  |  *[database]
+# |   - public    |  *8081  |   [api.product, api.payments]
 # | frontend      | 3000    | [api.public]
 # | nginx         | 80      | [frontend, api.public]
 
+## Reference for variable setting
+## Database
+# SERVICE_NAME="hasicups-db"
+# SERVICE_PORT="5432"
+# SERVICE_CHECKS="${SERVICE_NAME}:localhost:${SERVICE_PORT}"
+# SERVICE_UPSTREAMS=""
 
+## API
+# SERVICE_NAME="hasicups-api"
+# SERVICE_PORT="8081"
+# SERVICE_CHECKS="${SERVICE_NAME}.public:localhost:${SERVICE_PORT},${SERVICE_NAME}.product:localhost:9090,${SERVICE_NAME}.payments:localhost:8080"
+# SERVICE_UPSTREAMS="hasicups-db:5432"
 
-## Example SD single check
-#------------------------------------------------------------------------------#
+## FRONTEND
+# SERVICE_NAME="hasicups-frontend"
+# SERVICE_PORT="3000"
+# SERVICE_CHECKS="${SERVICE_NAME}:localhost:${SERVICE_PORT}"
+# SERVICE_UPSTREAMS="hasicups-api:8081"
 
-# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
-# ## svc-${SERVICE}.hcl
-# service {
-#   name = "${SERVICE}"
-#   id = "${SERVICE}-1"
-#   tags = ["v1"]
-#   port = 5432
+## NGINX
+# SERVICE_NAME="hasicups-nginx"
+# SERVICE_PORT="80"
+# SERVICE_CHECKS="${SERVICE_NAME}:localhost:${SERVICE_PORT}"
+# SERVICE_UPSTREAMS="hasicups-frontend:3000, hasicups-api:8081"
+
+## Remove pre-existing configuration
+rm -rf conf/svc
+mkdir -p conf/svc/service_discovery conf/svc/service_mesh
+
+SERVICE=${SERVICE_NAME} # HashiCups values [database, api, frontend, nginx]
+PORT=${SERVICE_PORT}
+CHECKS=${SERVICE_CHECKS} # Something like "name:address:port, name:localhost:5432, name::5432"
+UPSTREAMS=${SERVICE_UPSTREAMS} # Something like "hashicups-db:5432, hashicups-api:8081"
+
+## Wrap service check definitiions
+for i in `echo $${CHECKS} | tr ',' '\n'`; do
+
+  _CHECK_NAME=`echo $i | cut -d':' -f1`
+  _CHECK_URL=`echo $i | cut -d':' -f2`:`echo $i | cut -d':' -f3`
+    
+  _CHECK_DEF=$(cat <<-END
+    
+  {
+    id =  "check-$${_CHECK_NAME}",
+    name = "$${_CHECK_NAME} status check",
+    service_id = "$${SERVICE}-1",
+    tcp  = "$${_CHECK_URL}",
+    interval = "1s",
+    timeout = "1s"
+  }
+
+END
+)
+    if [ ! -z "$${_SERVICE_DEF_CHECK}" -a "$${_SERVICE_DEF_CHECK}"!=" " ]; then
+      _SERVICE_DEF_CHECK="$${_SERVICE_DEF_CHECK},$${_CHECK_DEF}"
+    else
+      _SERVICE_DEF_CHECK="$${_CHECK_DEF}"
+    fi
+
+done
+
+# echo -e $${_SERVICE_DEF_CHECK} | wc -l
+
+if [ `echo -e $${_SERVICE_DEF_CHECK} | grep "{" | wc -l` -gt 1 ]; then
+    _CHECKS_WRAPPER="checks =[$${_SERVICE_DEF_CHECK}]"
+else
+    _CHECKS_WRAPPER="check $${_SERVICE_DEF_CHECK}"
+fi
+
+## Wrap upstreams definitions
+for i in `echo $${UPSTREAMS} | tr ',' '\n'`; do
+
+  _UPS_NAME=`echo $i | cut -d':' -f1`
+  _UPS_PORT=`echo $i | cut -d':' -f2`
+    
+  _UPS_DEF=$(cat <<-END
+{
+              destination_name = "$${_UPS_NAME}"
+              local_bind_port = "$${_UPS_PORT}"
+            }
+END
+)
   
-#   check {
-#     id =  "check-${SERVICE}",
-#     name = "Product ${SERVICE} status check",
-#     service_id = "${SERVICE}-1",
-#     tcp  = "localhost:5432",
-#     interval = "1s",
-#     timeout = "1s"
-#   }
-# }
-# EOF
+  if [ ! -z "$${_SERVICE_DEF_UPS}" -a "$${_SERVICE_DEF_UPS}"!=" " ]; then
+    _SERVICE_DEF_UPS="$${_SERVICE_DEF_UPS},
+            $${_UPS_DEF}"
+  else
+    _SERVICE_DEF_UPS="$${_UPS_DEF}"
+  fi
 
-## Example - Mesh - Single Check - No Upstream
-#------------------------------------------------------------------------------#
+done
 
-# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
-# ## svc-${SERVICE}.hcl
-# service {
-#   name = "${SERVICE}"
-#   id = "${SERVICE}-1"
-#   tags = ["v1"]
-#   port = 5432
+if [ `echo -e $${_SERVICE_DEF_UPS} | grep "{" | wc -l` -ge 1 ]; then
+
+    # One or more upstreams
+    _UPS_WRAPPER=$(cat <<-END
+        
+        proxy {
+          upstreams = [
+            $${_SERVICE_DEF_UPS}
+          ]
+        }
+    
+END
+)
+
+fi
+
+
+## Service Discovery File generation
+tee conf/svc/service_discovery/svc-$${SERVICE}.hcl > /dev/null << EOF
+## svc-$${SERVICE}.hcl
+service {
+  name = "$${SERVICE}"
+  id = "$${SERVICE}-1"
+  tags = ["v1"]
+  port = $${PORT}
   
-#   connect {
-#     sidecar_service {}
-#   }  
+  $${_CHECKS_WRAPPER}
+
+}
+EOF
+
+## Service Mesh File generation
+tee conf/svc/service_mesh/svc-$${SERVICE}.hcl > /dev/null << EOF
+## svc-$${SERVICE}.hcl
+service {
+  name = "$${SERVICE}"
+  id = "$${SERVICE}-1"
+  tags = ["v1"]
+  port = $${PORT}
   
-#   check {
-#     id =  "check-${SERVICE}",
-#     name = "Product ${SERVICE} status check",
-#     service_id = "${SERVICE}-1",
-#     tcp  = "localhost:5432",
-#     interval = "1s",
-#     timeout = "1s"
-#  #------------------------------------------------------------------------------# }
-# }
-# EOF
+  connect {
+    sidecar_service { $${_UPS_WRAPPER} }
+  }  
 
-## Example - Mesh - Multi Check - Single Upstream
-#------------------------------------------------------------------------------#
+  $${_CHECKS_WRAPPER}
 
-# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
-# ## svc-${SERVICE}.hcl
-# service {
-#   name = "${SERVICE}"
-#   id = "${SERVICE}-1"
-#   tags = ["v1"]
-#   port = 8081
-  
-#   connect {
-#     sidecar_service {
-#       proxy {
-#         upstreams = [
-#           {
-#             destination_name = "hashicups-db"
-#             local_bind_port = 5432
-#           }
-#         ]
-#       }
-#     }
-#   }
+}
+EOF
 
-#   checks =[ 
-#     {
-#       id =  "check-${SERVICE}",
-#       name = "Product ${SERVICE} status check",
-#       service_id = "${SERVICE}-1",
-#       tcp  = "localhost:8081",
-#       interval = "1s",
-#       timeout = "1s"
-#     },
-#     {
-#       id =  "check-${SERVICE}-1",
-#       name = "Product ${SERVICE} status check 1",
-#       service_id = "${SERVICE}-1",
-#       tcp  = "${SERVICE}${FQDN_SUFFIX}:8080",
-#       interval = "1s",
-#       timeout = "1s"
-#     },
-#     {
-#       id =  "check-${SERVICE}-2",
-#       name = "Product ${SERVICE} status check 2",
-#       service_id = "${SERVICE}-1",
-#       tcp  = "localhost:9090",
-#       interval = "1s",
-#       timeout = "1s"
-#     }
-#   ]
-# }
-# EOF
+## Service Mesh Sidecar Proxy starter file
+tee conf/svc/service_mesh/start_sidecar.sh > /dev/null << EOF
+#!/usr/bin/env bash
 
+/usr/local/bin/consul connect envoy -token=$${CONSUL_HTTP_TOKEN} -envoy-binary /usr/local/bin/envoy -sidecar-for $${SERVICE}-1 -- -l trace > /tmp/sidecar-proxy.log 2>&1 &
+EOF
 
-## Example - Mesh - Single Check - Multi Upstream
-#------------------------------------------------------------------------------#
+# echo "Comment out before live"
 
-# tee ${ASSETS}/svc-${SERVICE}.hcl > /dev/null << EOF
-# ## svc-${SERVICE}.hcl
-# service {
-#   name = "${SERVICE}"
-#   id = "${SERVICE}-1"
-#   tags = ["v1"]
-#   port = 80
-  
-#   connect {
-#     sidecar_service {
-#       proxy {
-#         upstreams = [
-#           {
-#             destination_name = "hashicups-frontend"
-#             local_bind_port = 3000
-#           },
-#           {
-#             destination_name = "hashicups-api"
-#             local_bind_port = 8081
-#           }
-#         ]
-#       }
-#     }
-#   }
+# cat conf/svc/service_discovery/svc-$${SERVICE}.hcl
+# cat conf/svc/service_mesh/svc-$${SERVICE}.hcl
+# cat conf/svc/service_mesh/start_sidecar.sh
 
-#   check {
-#     id =  "check-${SERVICE}",
-#     name = "Product ${SERVICE} status check",
-#     service_id = "${SERVICE}-1",
-#     tcp  = "${SERVICE}${FQDN_SUFFIX}:80",
-#     interval = "1s",
-#     timeout = "1s"
-#   }
-# }
-# EOF
-
-
-
-
-
-
-echo "Hello World"
+# rm -rf conf/svc
