@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-## Payments
+## Remove pre-existing instances
+docker rm -f hashicups-api-payments hashicups-api-product hashicups-api-public
 
+## Payments
 docker run \
 -d \
 --network host \
@@ -9,7 +11,6 @@ docker run \
 --name hashicups-api-payments hashicorpdemoapp/payments:${VERSION_PAY}
 
 ## Product API
-
 tee /home/admin/conf.json > /dev/null << EOF
 {
   "db_connection": "host=${DB_HOST} port=5432 user=postgres password=password dbname=products sslmode=disable",
@@ -26,7 +27,6 @@ docker run \
 --name hashicups-api-product hashicorpdemoapp/product-api:${VERSION_PROD}
 
 ## Public API
-
 docker run \
 -d \
 --network host \

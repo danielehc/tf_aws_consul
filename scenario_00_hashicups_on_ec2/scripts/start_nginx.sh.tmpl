@@ -35,6 +35,10 @@ server {
 }
 EOF
 
+# Removes previous instances
+docker rm -f hashicups-nginx
+
+# Starts application
 docker run \
 -d \
 --network host \
