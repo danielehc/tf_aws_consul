@@ -22,7 +22,7 @@ export CONSUL_HTTP_TOKEN=${CONSUL_HTTP_TOKEN:-"`cat ./acl-token-bootstrap.json |
 echo "Create ACL policies and tokens"
 
 tee ${ASSETS}/acl-policy-dns.hcl > /dev/null << EOF
-## dns-request-policy.hcl
+## acl-policy-dns.hcl
 node_prefix "" {
   policy = "read"
 }
@@ -36,7 +36,7 @@ query_prefix "" {
 EOF
 
 tee ${ASSETS}/acl-policy-server-node.hcl > /dev/null << EOF
-## consul-server-one-policy.hcl
+## acl-policy-server-node.hcl
 node_prefix "consul" {
   policy = "write"
 }

@@ -25,6 +25,8 @@ server = false
 datacenter = "${DATACENTER}"
 domain = "${DOMAIN}" 
 
+node = "${NODE_NAME}"
+
 # Logging
 log_level = "DEBUG"
 enable_syslog = true
@@ -73,7 +75,7 @@ tls {
   }
   internal_rpc {
     verify_server_hostname = true
-  }
+  }it would make it more flexible and a bit more useful.
 }
 
 auto_encrypt {
@@ -88,14 +90,14 @@ acl {
 }
 EOF
 
-# tee $${CONSUL_CONFIG_DIR}agent-client-acl-tokens.hcl > /dev/null << EOF
-# acl {
-#   tokens {
-#     agent  = "$${AGENT_TOKEN}"
-#     default  = "$${DEFAULT_TOKEN}"
-#   }
-# }
-# EOF
+tee $${CONSUL_CONFIG_DIR}agent-client-acl-tokens.hcl > /dev/null << EOF
+acl {
+  tokens {
+    agent  = "${AGENT_TOKEN}"
+    default  = "${DEFAULT_TOKEN}"
+  }
+}
+EOF
 
 ## Generate Consul service config
 

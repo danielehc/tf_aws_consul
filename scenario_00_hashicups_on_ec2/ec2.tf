@@ -130,6 +130,7 @@ resource "aws_instance" "consul_server" {
       GRAFANA_URI     = "${aws_instance.bastion.public_ip}:3000",
       PROMETHEUS_URI  = "${aws_instance.bastion.public_ip}:9009"
       ACL_BOOTSTRAP   = var.auto_acl_bootstrap ? "${random_uuid.bootstrap-token.id}" : ""
+      START_CONSUL    = var.autostart_control_plane
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -137,6 +138,19 @@ resource "aws_instance" "consul_server" {
   provisioner "file" {
     source     = "${path.module}/scripts/generate_consul_server_tokens.sh"
     destination = "/home/admin/generate_consul_server_tokens.sh"      # remote machine
+  }
+
+  provisioner "file" {
+    source     = "${path.module}/scripts/start_consul.sh.tmpl"
+    destination = "/home/admin/start_consul.sh"      # remote machine
+  }
+
+  # Waits for cloud-init to complete. Needed for ACL creation.
+  provisioner "remote-exec" {  
+    inline = [  
+    "echo 'Waiting for user data script to finish'",  
+    "cloud-init status --wait > /dev/null"  
+    ]  
   }
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
@@ -193,11 +207,14 @@ resource "aws_instance" "database" {
   ## Configure Consul
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
-      DATACENTER  = "${var.consul_datacenter}",
-      DOMAIN      = "${var.consul_domain}",
-      GOSSIP_KEY  = "${random_id.gossip_key.b64_std}",
-      CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING = "${var.retry_join}"
+      DATACENTER    = var.consul_datacenter,
+      DOMAIN        = var.consul_domain,
+      NODE_NAME     = "hashicups-db",
+      GOSSIP_KEY    = random_id.gossip_key.b64_std,
+      CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
+      JOIN_STRING   = var.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-db-token[0].id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-db-token[0].id : "TOKEN" : "TOKEN"
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -271,11 +288,14 @@ resource "aws_instance" "api" {
   ## Configure Consul
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
-      DATACENTER  = "${var.consul_datacenter}",
-      DOMAIN      = "${var.consul_domain}",
-      GOSSIP_KEY  = "${random_id.gossip_key.b64_std}",
-      CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING = "${var.retry_join}"
+      DATACENTER    = var.consul_datacenter,
+      DOMAIN        = var.consul_domain,
+      NODE_NAME   = "hashicups-api",
+      GOSSIP_KEY    = random_id.gossip_key.b64_std,
+      CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
+      JOIN_STRING   = var.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-api-token[0].id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-api-token[0].id : "TOKEN" : "TOKEN"
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -355,11 +375,14 @@ resource "aws_instance" "frontend" {
   ## Configure Consul
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
-      DATACENTER  = var.consul_datacenter,
-      DOMAIN      = var.consul_domain,
-      GOSSIP_KEY  = random_id.gossip_key.b64_std,
-      CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING = var.retry_join
+      DATACENTER    = var.consul_datacenter,
+      DOMAIN        = var.consul_domain,
+      NODE_NAME   = "hashicups-frontend",
+      GOSSIP_KEY    = random_id.gossip_key.b64_std,
+      CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
+      JOIN_STRING   = var.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-frontend-token[0].id : "TOKEN" : "TOKEN"
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-frontend-token[0].id : "TOKEN" : "TOKEN"
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -435,11 +458,14 @@ resource "aws_instance" "nginx" {
   ## Configure Consul
   provisioner "file" {
     content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
-      DATACENTER  = "${var.consul_datacenter}",
-      DOMAIN      = "${var.consul_domain}",
-      GOSSIP_KEY  = "${random_id.gossip_key.b64_std}",
-      CA_CERT     = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING = "${var.retry_join}"
+      DATACENTER    = var.consul_datacenter,
+      DOMAIN        = var.consul_domain,
+      NODE_NAME   = "hashicups-nginx",
+      GOSSIP_KEY    = random_id.gossip_key.b64_std,
+      CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
+      JOIN_STRING   = var.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-nginx-token[0].id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-nginx-token[0].id : "TOKEN" : "TOKEN"
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }

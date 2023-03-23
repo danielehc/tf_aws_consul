@@ -7,7 +7,7 @@ resource "tls_private_key" "keypair_private_key" {
 }
 
 resource "aws_key_pair" "keypair" {
-  key_name   = "id_rsa.pub"
+  key_name   = "id_rsa.pub.${local.name}"
   public_key = tls_private_key.keypair_private_key.public_key_openssh
 
   # Create "id_rsa.pem" in local directory

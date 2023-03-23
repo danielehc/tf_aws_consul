@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if [ $${START_CONSUL} ]; then
+
+    sudo systemctl enable consul
+
+    sudo systemctl start consul
+
+fi

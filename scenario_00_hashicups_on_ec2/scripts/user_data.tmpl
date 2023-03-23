@@ -48,6 +48,9 @@ runcmd:
  - wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/grafana.gpg
  - echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
  - sudo apt update && sudo apt-get install grafana-agent
+# Make scripts executable
+ - cd /home/admin
+ - chmod +x *.sh
 # Configure Consul
  - cd /home/admin
  - ./consul_config.sh
