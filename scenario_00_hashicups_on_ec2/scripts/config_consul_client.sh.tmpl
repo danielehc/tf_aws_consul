@@ -12,7 +12,7 @@ mkdir -p $${CONSUL_TEMP_CONFIG_DIR}
 rm -rf $${CONSUL_TEMP_CONFIG_DIR}*
 
 # Generate Certificates
-echo -n "${CA_CERT}" > /etc/consul.d/consul-agent-ca.pem
+echo -n "${CA_CERT}" | base64 -d | zcat > /etc/consul.d/consul-agent-ca.pem
 
 # "Generate gossip encryption key"
 echo encrypt = \"${GOSSIP_KEY}\" > $${CONSUL_CONFIG_DIR}agent-gossip-encryption.hcl
@@ -25,28 +25,29 @@ server = false
 datacenter = "${DATACENTER}"
 domain = "${DOMAIN}" 
 
-node = "${NODE_NAME}"
+node_name = "${NODE_NAME}"
 
 # Logging
 log_level = "DEBUG"
 enable_syslog = true
 
 # Data persistence
-data_dir = "/etc/consul/data"
+data_dir = "$${CONSUL_DATA_DIR}"
 
-#client_addr = "127.0.0.1"
+client_addr = "127.0.0.1"
+bind_addr   = "{{ GetInterfaceIP \"eth0\" }}"
 
 # Join other Consul agents
-retry_join = [ ${JOIN_STRING} ]
+retry_join = [ "${JOIN_STRING}" ]
 
 # Ports
 ports {
-  grpc_tls  = 8502
-  grpc  = 8502
-  http  = 8500
-  # https = 443
-  https = -1
-  dns   = 8600
+  http      = 8500
+  https     = -1
+  # https   = 443
+  grpc      = 8502
+  grpc_tls  = 8503
+  dns       = 8600
 }
 
 # Enable Consul service mesh
@@ -66,7 +67,7 @@ enable_central_service_config = true
 ## TLS Encryption
 tls {
   defaults {
-    ca_file   = "/etc/consul/config/consul-agent-ca.pem"
+    ca_file   = "/etc/consul.d/consul-agent-ca.pem"
     verify_outgoing        = true
     verify_incoming        = true
   }
@@ -75,7 +76,7 @@ tls {
   }
   internal_rpc {
     verify_server_hostname = true
-  }it would make it more flexible and a bit more useful.
+  }
 }
 
 auto_encrypt {

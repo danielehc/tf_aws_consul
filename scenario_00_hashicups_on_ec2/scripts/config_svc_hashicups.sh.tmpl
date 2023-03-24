@@ -12,28 +12,28 @@
 
 ## Reference for variable setting
 ## Database
-# SERVICE_NAME="hasicups-db"
-# SERVICE_PORT="5432"
+# SERVICE_NAME="hashicups-db"
+# SER/service_config.sh: nVICE_PORT="5432"
 # SERVICE_CHECKS="${SERVICE_NAME}:localhost:${SERVICE_PORT}"
 # SERVICE_UPSTREAMS=""
 
 ## API
-# SERVICE_NAME="hasicups-api"
+# SERVICE_NAME="hashicups-api"
 # SERVICE_PORT="8081"
 # SERVICE_CHECKS="${SERVICE_NAME}.public:localhost:${SERVICE_PORT},${SERVICE_NAME}.product:localhost:9090,${SERVICE_NAME}.payments:localhost:8080"
-# SERVICE_UPSTREAMS="hasicups-db:5432"
+# SERVICE_UPSTREAMS="hashicups-db:5432"
 
 ## FRONTEND
-# SERVICE_NAME="hasicups-frontend"
+# SERVICE_NAME="hashicups-frontend"
 # SERVICE_PORT="3000"
 # SERVICE_CHECKS="${SERVICE_NAME}:localhost:${SERVICE_PORT}"
-# SERVICE_UPSTREAMS="hasicups-api:8081"
+# SERVICE_UPSTREAMS="hashicups-api:8081"
 
 ## NGINX
-# SERVICE_NAME="hasicups-nginx"
+# SERVICE_NAME="hashicups-nginx"
 # SERVICE_PORT="80"
 # SERVICE_CHECKS="${SERVICE_NAME}:localhost:${SERVICE_PORT}"
-# SERVICE_UPSTREAMS="hasicups-frontend:3000, hasicups-api:8081"
+# SERVICE_UPSTREAMS="hashicups-frontend:3000, hashicups-api:8081"
 
 ## Remove pre-existing configuration
 rm -rf conf/svc
@@ -43,6 +43,8 @@ SERVICE=${SERVICE_NAME} # HashiCups values [database, api, frontend, nginx]
 PORT=${SERVICE_PORT}
 CHECKS=${SERVICE_CHECKS} # Something like "name:address:port, name:localhost:5432, name::5432"
 UPSTREAMS=${SERVICE_UPSTREAMS} # Something like "hashicups-db:5432, hashicups-api:8081"
+
+CONSUL_CONFIG_DIR="/etc/consul.d/"
 
 ## Wrap service check definitiions
 for i in `echo $${CHECKS} | tr ',' '\n'`; do
@@ -65,6 +67,7 @@ END
 )
     if [ ! -z "$${_SERVICE_DEF_CHECK}" -a "$${_SERVICE_DEF_CHECK}"!=" " ]; then
       _SERVICE_DEF_CHECK="$${_SERVICE_DEF_CHECK},$${_CHECK_DEF}"
+      _MULTI_CHECK=true
     else
       _SERVICE_DEF_CHECK="$${_CHECK_DEF}"
     fi
@@ -73,7 +76,7 @@ done
 
 # echo -e $${_SERVICE_DEF_CHECK} | wc -l
 
-if [ `echo -e $${_SERVICE_DEF_CHECK} | grep "{" | wc -l` -gt 1 ]; then
+if [ "$${_MULTI_CHECK}" ]; then
     _CHECKS_WRAPPER="checks =[$${_SERVICE_DEF_CHECK}]"
 else
     _CHECKS_WRAPPER="check $${_SERVICE_DEF_CHECK}"
@@ -138,10 +141,7 @@ tee conf/svc/service_mesh/svc-$${SERVICE}.hcl > /dev/null << EOF
 ## svc-$${SERVICE}.hcl
 service {
   name = "$${SERVICE}"
-  id = "$${SERVICE}-1"
-  tags = ["v1"]
-  port = $${PORT}
-  
+  id = "$${SERVICE}-1"/service_config.sh: n
   connect {
     sidecar_service { $${_UPS_WRAPPER} }
   }  
@@ -155,13 +155,19 @@ EOF
 tee conf/svc/service_mesh/start_sidecar.sh > /dev/null << EOF
 #!/usr/bin/env bash
 
-/usr/local/bin/consul connect envoy -token=$${CONSUL_HTTP_TOKEN} -envoy-binary /usr/local/bin/envoy -sidecar-for $${SERVICE}-1 -- -l trace > /tmp/sidecar-proxy.log 2>&1 &
+/usr/local/bin/consul connect envoy -token=$${AGENT_TOKEN} -envoy-binary /usr/local/bin/envoy -sidecar-for $${SERVICE}-1 -- -l trace > /tmp/sidecar-proxy.log 2>&1 &
 EOF
 
-# echo "Comment out before live"
+if [ $${CONFIGURE_SERVICE_MESH} ]; then
 
-# cat conf/svc/service_discovery/svc-$${SERVICE}.hcl
-# cat conf/svc/service_mesh/svc-$${SERVICE}.hcl
-# cat conf/svc/service_mesh/start_sidecar.sh
+  echo "Configure for service mesh"
+  cp conf/svc/service_mesh/svc-$${SERVICE}.hcl $${CONSUL_CONFIG_DIR}
+  cp conf/svc/service_mesh/start_sidecar.sh /home/admin/start_sidecar.sh
 
-# rm -rf conf/svc
+else 
+
+  echo "Configure for service discovery"
+  cp conf/svc/service_discovery/svc-$${SERVICE}.hcl $${CONSUL_CONFIG_DIR}
+  echo "#!/usr/bin/env bash" > /home/admin/start_sidecar.sh
+
+fi

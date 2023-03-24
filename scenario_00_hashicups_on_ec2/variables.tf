@@ -9,6 +9,10 @@ locals {
   name = "${var.prefix}-${random_string.suffix.result}"
 }
 
+locals {
+  retry_join = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join-${random_string.suffix.result}"
+}
+
 ## Flow Control
 variable "prefix" {
   description = "The prefix used for all resources in this plan"
@@ -47,11 +51,11 @@ variable "server_number" {
   default = "1"
 }
 
-variable "retry_join" {
-  description = "Used by Consul to automatically join other nodes."
-  type        = string
-  default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
-}
+# variable "retry_join" {
+#   description = "Used by Consul to automatically join other nodes."
+#   type        = string
+#   default     = "provider=aws tag_key=ConsulJoinTag tag_value=auto-join"
+# }
 
 #------------------------------------------------------------------------------#
 ## Consul Flow
@@ -63,7 +67,6 @@ variable "autostart_control_plane" {
   default = true
 }
 
-// TODO
 variable "autostart_data_plane" {
   description = "If set to true, starts Consul clients automatically"
   type   = bool
@@ -83,6 +86,12 @@ variable "auto_acl_clients" {
 }
 
 variable "config_services_for_mesh" {
+  description = "If set to true, it will use mesh configuration for Consul services"
+   type   = bool
+   default = false
+}
+
+variable "start_monitoring_client" {
   description = "If set to true, it will use mesh configuration for Consul services"
    type   = bool
    default = false

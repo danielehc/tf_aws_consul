@@ -52,14 +52,12 @@ runcmd:
  - cd /home/admin
  - chmod +x *.sh
 # Configure Consul
- - cd /home/admin
- - ./consul_config.sh
+ - ./consul_config.sh 
 # Configure Consul services
- - cd /home/admin
  - ./service_config.sh
 # Start Application
- - cd /home/admin
  - ./start_app.sh
 # Start Consul agents
- - cd /home/admin
  - ./start_consul.sh
+# Start Consul agents
+#  - ./start_sidecar.sh

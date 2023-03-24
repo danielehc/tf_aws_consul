@@ -21,6 +21,7 @@ data "aws_ami" "debian-11" {
 #------------------------------------------------------------------------------#
 
 resource "aws_instance" "bastion" {
+  depends_on = [module.vpc]
   ami                         = data.aws_ami.debian-11.id
   associate_public_ip_address = true
   instance_type               = "t2.micro"
@@ -79,6 +80,7 @@ resource "aws_instance" "bastion" {
 #------------------------------------------------------------------------------#
 
 resource "aws_instance" "consul_server" {
+  depends_on = [module.vpc]
   count                       = var.server_number  
   ami                         = data.aws_ami.debian-11.id
   associate_public_ip_address = true
@@ -93,7 +95,7 @@ resource "aws_instance" "consul_server" {
 
   tags = {
     Name = "consul-server-${count.index}",
-    ConsulJoinTag = "auto-join"
+    ConsulJoinTag = "auto-join-${random_string.suffix.result}"
   }
 
   user_data = templatefile("${path.module}/scripts/user_data.tmpl", {
@@ -126,10 +128,10 @@ resource "aws_instance" "consul_server" {
       CA_CERT         = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
       TLS_CERT        = base64gzip("${tls_locally_signed_cert.server_cert.cert_pem}"),
       TLS_CERT_KEY    = base64gzip("${tls_private_key.server_cert.private_key_pem}"),
-      JOIN_STRING     = "${var.retry_join}",
+      JOIN_STRING     = local.retry_join,
       GRAFANA_URI     = "${aws_instance.bastion.public_ip}:3000",
-      PROMETHEUS_URI  = "${aws_instance.bastion.public_ip}:9009"
-      ACL_BOOTSTRAP   = var.auto_acl_bootstrap ? "${random_uuid.bootstrap-token.id}" : ""
+      PROMETHEUS_URI  = "${aws_instance.bastion.public_ip}:9009",
+      ACL_BOOTSTRAP   = var.auto_acl_bootstrap ? "${random_uuid.bootstrap-token.id}" : "",
       START_CONSUL    = var.autostart_control_plane
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
@@ -170,6 +172,7 @@ resource "aws_instance" "consul_server" {
 #------------#
 
 resource "aws_instance" "database" {
+  depends_on = [module.vpc]
   ami                         = data.aws_ami.debian-11.id
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.keypair.id
@@ -212,9 +215,10 @@ resource "aws_instance" "database" {
       NODE_NAME     = "hashicups-db",
       GOSSIP_KEY    = random_id.gossip_key.b64_std,
       CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING   = var.retry_join,
-      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-db-token[0].id : "TOKEN" : "TOKEN",
-      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-db-token[0].id : "TOKEN" : "TOKEN"
+      JOIN_STRING   = local.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-db-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-db-token-secret[0].secret_id : "TOKEN" : "TOKEN"
+      START_CONSUL    = var.autostart_data_plane
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -238,6 +242,11 @@ resource "aws_instance" "database" {
     destination = "/home/admin/start_app.sh"      # remote machine
   }
 
+  provisioner "file" {
+    source     = "${path.module}/scripts/start_consul.sh.tmpl"
+    destination = "/home/admin/start_consul.sh"      # remote machine
+  }
+
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
   metadata_options {
@@ -251,6 +260,7 @@ resource "aws_instance" "database" {
 #------------#
 
 resource "aws_instance" "api" {
+  depends_on = [module.vpc]
   ami                         = data.aws_ami.debian-11.id
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.keypair.id
@@ -290,12 +300,13 @@ resource "aws_instance" "api" {
     content     = templatefile("${path.module}/scripts/config_consul_client.sh.tmpl", { 
       DATACENTER    = var.consul_datacenter,
       DOMAIN        = var.consul_domain,
-      NODE_NAME   = "hashicups-api",
+      NODE_NAME     = "hashicups-api",
       GOSSIP_KEY    = random_id.gossip_key.b64_std,
       CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING   = var.retry_join,
-      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-api-token[0].id : "TOKEN" : "TOKEN",
-      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-api-token[0].id : "TOKEN" : "TOKEN"
+      JOIN_STRING   = local.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-api-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-api-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      START_CONSUL  = var.autostart_data_plane
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -324,6 +335,11 @@ resource "aws_instance" "api" {
     destination = "/home/admin/start_app.sh"      # remote machine
   }
 
+  provisioner "file" {
+    source     = "${path.module}/scripts/start_consul.sh.tmpl"
+    destination = "/home/admin/start_consul.sh"      # remote machine
+  }
+
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
@@ -338,6 +354,7 @@ resource "aws_instance" "api" {
 #------------#
 
 resource "aws_instance" "frontend" {
+  depends_on = [module.vpc]
   ami                         = data.aws_ami.debian-11.id
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.keypair.id
@@ -380,9 +397,10 @@ resource "aws_instance" "frontend" {
       NODE_NAME   = "hashicups-frontend",
       GOSSIP_KEY    = random_id.gossip_key.b64_std,
       CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING   = var.retry_join,
-      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-frontend-token[0].id : "TOKEN" : "TOKEN"
-      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-frontend-token[0].id : "TOKEN" : "TOKEN"
+      JOIN_STRING   = local.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-frontend-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-frontend-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      START_CONSUL  = var.autostart_data_plane
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -407,6 +425,11 @@ resource "aws_instance" "frontend" {
     destination = "/home/admin/start_app.sh"      # remote machine
   }
 
+  provisioner "file" {
+    source     = "${path.module}/scripts/start_consul.sh.tmpl"
+    destination = "/home/admin/start_consul.sh"      # remote machine
+  }
+
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
   metadata_options {
@@ -420,6 +443,7 @@ resource "aws_instance" "frontend" {
 #------------#
 
 resource "aws_instance" "nginx" {
+  depends_on = [module.vpc]
   ami                         = data.aws_ami.debian-11.id
   associate_public_ip_address = true
   instance_type               = "t2.micro"
@@ -463,9 +487,10 @@ resource "aws_instance" "nginx" {
       NODE_NAME   = "hashicups-nginx",
       GOSSIP_KEY    = random_id.gossip_key.b64_std,
       CA_CERT       = base64gzip("${tls_self_signed_cert.ca.cert_pem}"),
-      JOIN_STRING   = var.retry_join,
-      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-nginx-token[0].id : "TOKEN" : "TOKEN",
-      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? consul_acl_token.hashicups-nginx-token[0].id : "TOKEN" : "TOKEN"
+      JOIN_STRING   = local.retry_join,
+      AGENT_TOKEN   = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-nginx-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      DEFAULT_TOKEN = var.auto_acl_bootstrap ? var.auto_acl_clients ? data.consul_acl_token_secret_id.hashicups-nginx-token-secret[0].secret_id : "TOKEN" : "TOKEN",
+      START_CONSUL  = var.autostart_data_plane
     })
     destination = "/home/admin/consul_config.sh"      # remote machine
   }
@@ -488,6 +513,11 @@ resource "aws_instance" "nginx" {
       FE_HOST = aws_instance.frontend.private_ip
     })
     destination = "/home/admin/start_app.sh"      # remote machine
+  }
+
+  provisioner "file" {
+    source     = "${path.module}/scripts/start_consul.sh.tmpl"
+    destination = "/home/admin/start_consul.sh"      # remote machine
   }
 
 
