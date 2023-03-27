@@ -1,5 +1,5 @@
 // A variable for extracting the external ip of the instance
-output "bastion_ip" {
+output "ip_bastion" {
   value = aws_instance.bastion.public_ip
 }
 
@@ -7,7 +7,7 @@ output "hashicups_ui" {
   value = "http://${aws_instance.nginx.public_ip}"
 }
 
-output connection_string {
+output "connection_string" {
   value = "ssh -i certs/id_rsa.pem admin@${aws_instance.bastion.public_ip}"
 }
 

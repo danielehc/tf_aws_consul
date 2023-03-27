@@ -56,8 +56,9 @@ addresses {
 ports {
   http      = 8500
   https     = 8443
-  grpc      = 8502
-  grpc_tls  = 8503
+  # grpc      = 8502
+  grpc_tls  = 8502
+  # grpc_tls  = -1
   dns       = 8600
 }
 
@@ -94,6 +95,9 @@ tls {
   }
   internal_rpc {
     verify_server_hostname = true
+  }
+  grpc {
+    use_auto_cert = true
   }
 }
 
@@ -182,5 +186,15 @@ EOF
 
 ## Assign right ownership on config files
 chown consul:consul /etc/consul.d/*
+
+## Generate empty sidecar file for server
+  tee /home/admin/start_sidecar.sh > /dev/null << EOF
+#!/usr/bin/env bash
+echo "Not starting sidecar because config does not include it."
+EOF
+
+chown admin:admin /home/admin/start_sidecar.sh
+chmod +x /home/admin/start_sidecar.sh
+
 
 

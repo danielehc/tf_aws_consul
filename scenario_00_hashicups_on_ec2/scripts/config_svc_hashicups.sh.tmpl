@@ -44,6 +44,9 @@ PORT=${SERVICE_PORT}
 CHECKS=${SERVICE_CHECKS} # Something like "name:address:port, name:localhost:5432, name::5432"
 UPSTREAMS=${SERVICE_UPSTREAMS} # Something like "hashicups-db:5432, hashicups-api:8081"
 
+SERVICE_MESH=${CONFIGURE_SERVICE_MESH}
+TOKEN=${AGENT_TOKEN}
+
 CONSUL_CONFIG_DIR="/etc/consul.d/"
 
 ## Wrap service check definitiions
@@ -76,7 +79,7 @@ done
 
 # echo -e $${_SERVICE_DEF_CHECK} | wc -l
 
-if [ "$${_MULTI_CHECK}" ]; then
+if [ "$${_MULTI_CHECK}" == true ]; then
     _CHECKS_WRAPPER="checks =[$${_SERVICE_DEF_CHECK}]"
 else
     _CHECKS_WRAPPER="check $${_SERVICE_DEF_CHECK}"
@@ -91,7 +94,7 @@ for i in `echo $${UPSTREAMS} | tr ',' '\n'`; do
   _UPS_DEF=$(cat <<-END
 {
               destination_name = "$${_UPS_NAME}"
-              local_bind_port = "$${_UPS_PORT}"
+              local_bind_port = $${_UPS_PORT}
             }
 END
 )
@@ -99,13 +102,15 @@ END
   if [ ! -z "$${_SERVICE_DEF_UPS}" -a "$${_SERVICE_DEF_UPS}"!=" " ]; then
     _SERVICE_DEF_UPS="$${_SERVICE_DEF_UPS},
             $${_UPS_DEF}"
+    _MULTI_UPS=true
   else
     _SERVICE_DEF_UPS="$${_UPS_DEF}"
+    _MULTI_UPS=true
   fi
 
 done
 
-if [ `echo -e $${_SERVICE_DEF_UPS} | grep "{" | wc -l` -ge 1 ]; then
+if [ "$${_MULTI_UPS}" == true ]; then
 
     # One or more upstreams
     _UPS_WRAPPER=$(cat <<-END
@@ -141,7 +146,7 @@ tee conf/svc/service_mesh/svc-$${SERVICE}.hcl > /dev/null << EOF
 ## svc-$${SERVICE}.hcl
 service {
   name = "$${SERVICE}"
-  id = "$${SERVICE}-1"/service_config.sh: n
+  id = "$${SERVICE}-1"
   connect {
     sidecar_service { $${_UPS_WRAPPER} }
   }  
@@ -155,10 +160,12 @@ EOF
 tee conf/svc/service_mesh/start_sidecar.sh > /dev/null << EOF
 #!/usr/bin/env bash
 
-/usr/local/bin/consul connect envoy -token=$${AGENT_TOKEN} -envoy-binary /usr/local/bin/envoy -sidecar-for $${SERVICE}-1 -- -l trace > /tmp/sidecar-proxy.log 2>&1 &
+sleep 10
+
+/usr/bin/consul connect envoy -token=$${TOKEN} -ca-file=/etc/consul.d/consul-agent-ca.pem -envoy-binary /usr/bin/envoy -sidecar-for $${SERVICE}-1 -- -l trace > /tmp/sidecar-proxy.log 2>&1 &
 EOF
 
-if [ $${CONFIGURE_SERVICE_MESH} ]; then
+if [ $${SERVICE_MESH} ]; then
 
   echo "Configure for service mesh"
   cp conf/svc/service_mesh/svc-$${SERVICE}.hcl $${CONSUL_CONFIG_DIR}
@@ -168,6 +175,9 @@ else
 
   echo "Configure for service discovery"
   cp conf/svc/service_discovery/svc-$${SERVICE}.hcl $${CONSUL_CONFIG_DIR}
-  echo "#!/usr/bin/env bash" > /home/admin/start_sidecar.sh
+  tee /home/admin/start_sidecar.sh > /dev/null << EOF
+#!/usr/bin/env bash
+echo "Not starting sidecar because config does not include it."
+EOF
 
 fi

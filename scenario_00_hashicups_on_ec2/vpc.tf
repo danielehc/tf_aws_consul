@@ -131,18 +131,18 @@ resource "aws_security_group" "consul-agents" {
 
   # allow_serf_lan_tcp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8301
-    to_port   = 8301
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8301
+    to_port     = 8301
+    protocol    = "tcp"
   }
 
   # allow_serf_lan_udp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8301
-    to_port   = 8301
-    protocol  = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8301
+    to_port     = 8301
+    protocol    = "udp"
   }
 
   // Terraform removes the default rule
@@ -160,57 +160,57 @@ resource "aws_security_group" "consul-servers" {
 
   # allow_server_rcp_tcp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8300
-    to_port   = 8300
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8300
+    to_port     = 8300
+    protocol    = "tcp"
   }
 
   # allow_server_http_and_grpc_inbound - HTTP:8500 | HTTPS:8501 | GRPC:8502 | GRPCS:8503
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8500
-    to_port   = 8503
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8500
+    to_port     = 8503
+    protocol    = "tcp"
   }
 
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8443
-    to_port   = 8443
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8443
+    to_port     = 8443
+    protocol    = "tcp"
   }
 
   # allow_serf_wan_tcp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8302
-    to_port   = 8302
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8302
+    to_port     = 8302
+    protocol    = "tcp"
   }
 
   # allow_serf_wan_udp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8302
-    to_port   = 8302
-    protocol  = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8302
+    to_port     = 8302
+    protocol    = "udp"
   }
 
   # allow_dns_tcp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8600
-    to_port   = 8600
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8600
+    to_port     = 8600
+    protocol    = "tcp"
   }
 
   # allow_dns_udp_inbound
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 8600
-    to_port   = 8600
-    protocol  = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8600
+    to_port     = 8600
+    protocol    = "udp"
   }
 
   // Terraform removes the default rule
@@ -225,29 +225,29 @@ resource "aws_security_group" "consul-servers" {
 resource "aws_security_group" "ingress-monitoring-suite" {
   name   = "allow-monitoring-suite-sg"
   vpc_id = module.vpc.vpc_id
-  
+
   # Allow Grafana Access
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 3000
-    to_port   = 3000
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
   }
 
   # Allow Mimir Access
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 9009
-    to_port   = 9009
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 9009
+    to_port     = 9009
+    protocol    = "tcp"
   }
 
   # Allow Loki Access
   ingress {
-    cidr_blocks = [ "0.0.0.0/0" ]
-    from_port = 3100
-    to_port   = 3100
-    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 3100
+    to_port     = 3100
+    protocol    = "tcp"
   }
 
   // Terraform removes the default rule
@@ -257,5 +257,18 @@ resource "aws_security_group" "ingress-monitoring-suite" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
+}
+
+resource "aws_security_group" "ingress-envoy" {
+  name   = "allow-envoy-sh"
+  vpc_id = module.vpc.vpc_id
+
+  # Allow Grafana Access
+  ingress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 21000
+    to_port     = 21255
+    protocol    = "tcp"
+  }
 }

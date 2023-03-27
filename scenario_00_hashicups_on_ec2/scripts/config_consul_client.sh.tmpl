@@ -45,8 +45,9 @@ ports {
   http      = 8500
   https     = -1
   # https   = 443
-  grpc      = 8502
-  grpc_tls  = 8503
+  # grpc      = 8502
+  # grpc_tls  = -1
+  grpc_tls  = 8502
   dns       = 8600
 }
 
@@ -77,7 +78,12 @@ tls {
   internal_rpc {
     verify_server_hostname = true
   }
+  grpc {
+    use_auto_cert = true
+  }
 }
+
+
 
 auto_encrypt {
   tls = true
