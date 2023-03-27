@@ -1,5 +1,7 @@
 **/certs/**
 **/logs/**
+**/assets/**
 .terraform*
 terraform.tfstate*
 *.pem
+acl-token-bootstrap.json
