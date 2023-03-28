@@ -1,4 +1,10 @@
 #cloud-config
+# Do not update or manage /etc/hosts at all. This is the default behavior.
+#
+# Whatever is present at instance boot time will be present after boot.
+# User changes will not be overwritten.
+manage_etc_hosts: false
+
 preserve_hostname: true
 package_update: true
 package_upgrade: true
@@ -14,9 +20,22 @@ packages:
 write_files:
   - path: /etc/hosts
     content: | 
-      # Added to resolve new hostname
-      127.0.0.1  ${hostname}
-    append: true
+      # The following lines are desirable for IPv4 capable hosts
+      127.0.0.1 ${hostname}.local ${hostname}
+      127.0.0.1 localhost.localdomain localhost
+      127.0.0.1 localhost4.localdomain4 localhost4
+      # The following lines are desirable for IPv6 capable hosts
+      ::1 ${hostname}.local ${hostname}
+      ::1 localhost.localdomain localhost
+      ::1 localhost6.localdomain6 localhost6
+
+      ::1 ip6-localhost ip6-loopback
+      fe00::0 ip6-localnet
+      ff00::0 ip6-mcastprefix
+      ff02::1 ip6-allnodes
+      ff02::2 ip6-allrouters
+      ff02::3 ip6-allhosts
+    append: false
 runcmd:
 # set hostname
  - hostnamectl set-hostname --static ${hostname}
@@ -48,21 +67,21 @@ runcmd:
  - wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/grafana.gpg
  - echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
  - sudo apt update && sudo apt-get install grafana-agent
-# Make scripts executable
- - cd /home/admin
- - chmod +x *.sh
-# Configure Consul
- - ./consul_config.sh 
-# Configure Consul services
- - ./service_config.sh
-# Start Application
- - ./start_app.sh
-# Start Consul agents
- - ./start_consul.sh
-# Start Consul agents
- - sudo chmod +x ./start_sidecar.sh
- - ./start_sidecar.sh
-# # Grafana Agent Config
-#  - ./grafana_agent_config.sh
-# # Grafana Agent Config
-#  - ./start_grafana_agent.sh
+# # Make scripts executable
+#  - cd /home/admin
+#  - chmod +x *.sh
+# # Configure Consul
+#  - ./consul_config.sh 
+# # Configure Consul services
+#  - ./service_config.sh
+# # Start Application
+#  - ./start_app.sh
+# # Start Consul agents
+#  - ./start_consul.sh
+# # Start Consul agents
+#  - sudo chmod +x ./start_sidecar.sh
+#  - ./start_sidecar.sh
+# # # Grafana Agent Config
+# #  - ./grafana_agent_config.sh
+# # # Grafana Agent Config
+# #  - ./start_grafana_agent.sh

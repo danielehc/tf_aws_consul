@@ -39,12 +39,3 @@ terraform {
 provider "aws" {
   region = var.vpc_region
 }
-
-provider "consul" {
-  address        = "${aws_instance.consul_server.0.public_ip}:8443"
-  datacenter     = var.consul_datacenter
-  token          = var.auto_acl_bootstrap ? "${random_uuid.bootstrap-token.id}" : ""
-  ca_pem         = tls_self_signed_cert.ca.cert_pem
-  scheme         = "https"
-  insecure_https = true
-}
