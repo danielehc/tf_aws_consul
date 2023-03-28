@@ -5,3 +5,7 @@
 terraform.tfstate*
 *.pem
 acl-token-bootstrap.json
+assets/
+infrastructure/
+old/
+ops/
