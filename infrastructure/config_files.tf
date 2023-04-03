@@ -57,3 +57,12 @@ resource "local_file" "start_hashicups_nginx" {
   })
   filename = "${path.module}/../assets/scenario/start_hashicups_nginx.sh"
 }
+
+#------------------------------------------------------------------------------#
+## Grafana monitoring suite starting script
+#------------------------------------------------------------------------------#
+
+resource "local_file" "start_monitoring_suite" {
+  content  = templatefile("${path.module}/../assets/templates/provision/start_monitoring_suite.sh.tmpl", {  })
+  filename = "${path.module}/../assets/scenario/start_monitoring_suite.sh"
+}

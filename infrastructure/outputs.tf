@@ -7,9 +7,6 @@ output "connection_string" {
   value = "ssh -i certs/id_rsa.pem admin@${aws_instance.bastion.public_ip}"
 }
 
-output "hashicups_ui" {
-  value = "http://${aws_instance.nginx.public_ip}"
-}
 
 output "ip_db" {
   value = aws_instance.database.public_ip
@@ -29,6 +26,26 @@ output "ip_nginx" {
 
 output "ip_consul" {
   value = aws_instance.consul_server[*].public_ip
+}
+
+output "ui_hashicups" {
+  value = "http://${aws_instance.nginx.public_ip}"
+}
+
+output "ui_consul" {
+  value = "https://${aws_instance.consul_server.0.public_ip}:8443"
+}
+
+output "ui_grafana" {
+  value = "http://${aws_instance.bastion.public_ip}:3000"
+}
+
+output "ui_loki" {
+  value = "http://${aws_instance.bastion.public_ip}:3100"
+}
+
+output "ui_mimir" {
+  value = "http://${aws_instance.bastion.public_ip}:9009"
 }
 
 # output "hosts" {

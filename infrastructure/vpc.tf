@@ -271,4 +271,12 @@ resource "aws_security_group" "ingress-envoy" {
     to_port     = 21255
     protocol    = "tcp"
   }
+  
+  // Terraform removes the default rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
