@@ -20,6 +20,6 @@ docker run \
   $${NETWORK} \
   --restart unless-stopped \
   --env POSTGRES_DB=products \
-  --env POSTGRES_PASSWORD=password \
-  --env POSTGRES_USER=postgres \
+  --env POSTGRES_PASSWORD=hashicups \
+  --env POSTGRES_USER=hashicups \
   --name hashicups-db hashicorpdemoapp/product-api-db:${VERSION}

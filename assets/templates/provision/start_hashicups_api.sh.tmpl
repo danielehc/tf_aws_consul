@@ -47,7 +47,7 @@ docker run \
 ## Product API
 tee /home/admin/conf.json > /dev/null << EOF
 {
-  "db_connection": "host=$${DB} port=5432 user=postgres password=password dbname=products sslmode=disable",
+  "db_connection": "host=$${DB} port=5432 user=hashicups password=hashicups dbname=products sslmode=disable",
   "bind_address": "$${BIND_PRO}:9090",
   "metrics_address": "$${BIND_PRO}:9103"
 }
@@ -69,3 +69,4 @@ docker run \
   --env PAYMENT_API_URI=http://$${PAY}:8080 \
   --env  BIND_ADDRESS="$${BIND_PUB}:8081" \
   --name hashicups-api-public hashicorpdemoapp/public-api:${VERSION_PUB}
+

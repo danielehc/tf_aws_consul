@@ -71,9 +71,9 @@ runcmd:
  - wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/grafana.gpg
  - echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
  - sudo apt update && sudo apt-get install grafana-agent
-# Provision scenario
- - cd /home/admin/ops 
- - bash ./provision.sh test
+# # Provision scenario
+#  - cd /home/admin/ops 
+#  - bash ./provision.sh test
 # # Make scripts executable
 #  - cd /home/admin
 #  - chmod +x *.sh
