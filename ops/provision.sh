@@ -4,7 +4,7 @@
 # || Functions       |
 # ++-----------------+
 
-## TODO: clean_env() 
+## todo: clean_env() 
 ## Cleans entire environment. Removes Infrastructure.
 clean_env() {
 
@@ -39,7 +39,7 @@ clean_env() {
 
 ## Scenario Library
 
-## MARK: Scenario PATHS configuration
+## MARK: FLOW CRITICAL POINT !!! - Scenario PATHS configuration
 
 ## Refers to a workbench folder used by the script itself.
 ## In this folder all the dynamic files created explicitly for this scenario are 
@@ -66,7 +66,7 @@ source scenarios/20_infrastructure_functions.env
 ## UNCHARTED: Currently the tool supports only single scenario running.
 ##              Only single scenario use cases are tested at this time of 
 ##              development. 
-##  TODO: Check PATHS for existence
+##  ~todo: Check PATHS for existence
 ## If scenario file does not exist the final script might not work.
 ## If this file does not exist we should fallback to local execution and print a 
 ## warning because the resulting scripts might not work as-is.
@@ -75,7 +75,7 @@ source scenarios/20_infrastructure_functions.env
 ## at the moment counts as default state detection (possibly not the only factor)
 SCENARIO_OUTPUT_FOLDER="${ASSETS}scenario/"
 
-# ## TODO Flow control...remove before fly
+# ## -todo Flow control...remove before fly
 # ## Artificially generate a scenario file (check dry_run=false option)
 # touch ${SCENARIO_OUTPUT_FOLDER}scenario_env.env
 # ## Artificially populate a BASTION_HOST variable (check _RUN_LOCAL=false)
@@ -97,7 +97,7 @@ else
   _NO_ENV="true"
 fi
 
-if [ ${_NO_ENV} == "true" ]; then
+if [ "${_NO_ENV}" == "true" ]; then
 
   ## If there is no environment definition the scenario files might be faulty
   ## Therefore it is better to not run them but just generate them for checks.
@@ -118,21 +118,22 @@ else
     log "Bastion Host is not defined. The script is going to be executed on this node."
     _RUN_LOCAL="true"
   else 
-    log "Bastion Host is ${BASION_HOST}. The script is going to be executed remotely."
+    log "Bastion Host is ${BASTION_HOST}. The script is going to be executed remotely."
     _RUN_LOCAL="false"
     ## In this case we also SSH based options to permit SSH connection to the
     ## Bastion Host.
 
-    ## TODO: Check flow is correct
-    ## This overrides the SSH_OPTS and SSH_CERT the we loaded from
+    ## MARK: FLOW CRITICAL POINT !!! if this breaks connections will not work.
+    ## This overrides the SSH_OPTS and SSH_CERT the were loaded from
     ## ../assets/scenario/scenario_env.env for the provision.sh workflow. 
     ## This only affects the certificate used to connect to the Bastion Host. 
     ## The SSH_CERT defined in ../assets/scenario/scenario_env.env will still be
     ## used when running the operate.sh script on BASTION_HOST.
 
-    ## Automatically accept certificates of remote nodes
-    ## TODO Mave this on global variables since it should be used in any case
-    SSH_OPTS="StrictHostKeyChecking=accept-new"
+    ## Automatically accept certificates of remote nodes and tries to connect 
+    ## for 10 seconds.
+    ## todo Make this on global variables since it should be used in any case
+    SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 
     ## This is how to locate SSH certificate on the Bation Host
     SSH_CERT="../infrastructure/certs/id_rsa.pem"
@@ -164,20 +165,25 @@ PREREQUISITES="docker,wget,jq,grep,sed,tail,awk"
 ## Flow control
 ## Check parameters
 if   [ "$1" == "clean" ]; then
-  #  TODO Clean environment. This should be executed before applying
+  #  todo Clean environment. This should be executed before applying
   # a scenario (it would be nice to have idempotent scenarios apply)
   exit 0
 elif [ "$1" == "operate" ]; then
+  ########## ------------------------------------------------
+  header1     "OPERATE SCENARIO"
+  ###### -----------------------------------------------
   ## Generates scenario operate file and runs it on bastion host. 
   ## Scenario file is composed from the scenario folder and is going to be 
   ## located at ${ASSETS}scenario/scripts/operate.sh
   ## Uses functions defined at ${SCENARIOS}/10_scenario_functions.env
 
   ## 0 Clean existing environment
-  ## TODO check here for sw_clean or hw_clean
+  ## todo check here for sw_clean or hw_clean
   ## For now the scenario should be safe enough to be ran multiple times on the 
   ## same host with similar output.
  
+  # set -x
+
   ## Generate operate.sh script
   # set -x
   operate_dry $2
@@ -185,18 +191,18 @@ elif [ "$1" == "operate" ]; then
   execute_scenario_step "operate"
 
 elif [ "$1" == "infra" ]; then
-  ##  TODO Spins up infrastructure for scenario. 
+  ##  todo Spins up infrastructure for scenario. 
   ## Infrastructure files are located at ../infrastructure.
   ## ## Uses functions defined at ${SCENARIOS}/20_infrasteructure_functions.env
   exit 0
 elif [ "$1" == "check" ]; then
-  ##  TODO Generates scenario check file and runs it on bastion host. 
+  ##  todo Generates scenario check file and runs it on bastion host. 
   ## Scenario file is composed from the scenario folder and is going to be 
   ## located at ${ASSETS}scenario/scripts/check.sh
   ## Uses functions defined at ${SCENARIOS}/10_scenario_functions.env
   exit 0
 elif [ "$1" == "solve" ]; then
-  ## TODO Generates scenario solution file and runs it on bastion host. 
+  ## todo Generates scenario solution file and runs it on bastion host. 
   ## Scenario file is composed from the scenario folder and is going to be 
   ## located at ${ASSETS}scenario/scripts/solve.sh
   ## Uses functions defined at ${SCENARIOS}/10_scenario_functions.env

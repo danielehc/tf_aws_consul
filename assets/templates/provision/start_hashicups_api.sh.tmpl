@@ -47,7 +47,7 @@ docker run \
 ## Product API
 tee /home/admin/conf.json > /dev/null << EOF
 {
-  "db_connection": "host=$${DB} port=5432 user=hashicups password=hashicups dbname=products sslmode=disable",
+  "db_connection": "host=$${DB} port=5432 user=hashicups password=hahicups_pwd dbname=products sslmode=disable",
   "bind_address": "$${BIND_PRO}:9090",
   "metrics_address": "$${BIND_PRO}:9103"
 }

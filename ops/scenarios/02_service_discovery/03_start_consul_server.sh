@@ -39,11 +39,7 @@ header1 "Starting Consul server"
 header2 "Generate Consul servers configuration"
 
 ## MARK: [script] generate_consul_server_config.sh
-
-## -todo: [TWEAK] Retrieve from config
-_support_scripts_name="generate_consul_server_config.sh"
-execute_supporting_script ${_support_scripts_name}
-
+execute_supporting_script "generate_consul_server_config.sh"
 
 ##########################################################
 header2 "Copy Consul servers configuration files"
@@ -89,11 +85,12 @@ done
 
 ##########################################################
 header2 "Configure ACL"
-export CONSUL_HTTP_ADDR="https://consul-server-$i${FQDN_SUFFIX}:8443"
+
+export CONSUL_HTTP_ADDR="https://consul-server-0${FQDN_SUFFIX}:8443"
 export CONSUL_HTTP_SSL=true
 export CONSUL_CACERT="${STEP_ASSETS}secrets/consul-agent-ca.pem"
 export CONSUL_TLS_SERVER_NAME="server.${DATACENTER}.${DOMAIN}"
-export CONSUL_FQDN_ADDR="consul-server-$i${FQDN_SUFFIX}"
+export CONSUL_FQDN_ADDR="consul-server-0${FQDN_SUFFIX}"
 
 log "ACL Bootstrap"
 
@@ -123,7 +120,4 @@ export CONSUL_HTTP_TOKEN=`cat ${STEP_ASSETS}secrets/acl-token-bootstrap.json | j
 header2 "Configure servers token"
 
 ## MARK: [script] generate_consul_server_tokens.sh
-
-## -todo: [TWEAK] Retrieve from config
-_support_scripts_name="generate_consul_server_tokens.sh"
-execute_supporting_script ${_support_scripts_name}
+execute_supporting_script "generate_consul_server_tokens.sh"

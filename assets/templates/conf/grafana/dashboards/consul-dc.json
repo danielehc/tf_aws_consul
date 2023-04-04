@@ -164,7 +164,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Mimir",
-      "description": "TODO Interrogate the rate interval more\n\nRate of raft commits per server cluster. The commit count is emitted by the leader and can be considered authoritative across a datacenter.",
+      "description": "todo Interrogate the rate interval more\n\nRate of raft commits per server cluster. The commit count is emitted by the leader and can be considered authoritative across a datacenter.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -627,7 +627,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "[TODO] Please ensure Consul has CPU, Disk, Memory, and Network bandwidth headroom available! We recommend creating panels here, querying your host stats for each.",
+      "title": "[todo] Please ensure Consul has CPU, Disk, Memory, and Network bandwidth headroom available! We recommend creating panels here, querying your host stats for each.",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -711,7 +711,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "[TODO] Consul provides per-host stats for runtime.sys_bytes and runtime.gc_pause_ns ",
+      "title": "[todo] Consul provides per-host stats for runtime.sys_bytes and runtime.gc_pause_ns ",
       "tooltip": {
         "shared": true,
         "sort": 0,

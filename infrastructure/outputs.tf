@@ -48,6 +48,11 @@ output "ui_mimir" {
   value = "http://${aws_instance.bastion.public_ip}:9009"
 }
 
+output "remote_ops" {
+  value = "export BASTION_HOST=${aws_instance.bastion.public_ip}"
+}
+
+
 # output "hosts" {
 #   value = local.bastion_fake_dns
 # }
