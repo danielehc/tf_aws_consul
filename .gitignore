@@ -1,4 +1,13 @@
 **/certs/**
-**/logs/**
+# **/logs/**
+
+## Bucket folder on dev machine for archiving files rapidly
+**/old/
+## Ignore assets created by the infrastructure or by the scenario operation.
+assets/scenario/**
+## Ignore terraform state related files
 .terraform*
 terraform.tfstate*
+
+# *.pem
+# acl-token-bootstrap.json

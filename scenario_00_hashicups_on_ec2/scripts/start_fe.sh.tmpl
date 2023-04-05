@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-docker run \
--d \
---network host \
---restart unless-stopped \
---env NEXT_PUBLIC_PUBLIC_API_URL=/ \
---name hashicups-frontend hashicorpdemoapp/frontend:${VERSION}
