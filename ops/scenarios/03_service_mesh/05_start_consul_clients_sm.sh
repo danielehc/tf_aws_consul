@@ -12,7 +12,82 @@ export NODES_ARRAY=( "hashicups-db" "hashicups-api" "hashicups-frontend" "hashic
 # || Begin           |
 # ++-----------------+
 
-header1 "Starting Consul client agents"
+header1 "Starting Consul service mesh"
+
+
+##########################################################
+header2 "Generate Consul clients configuration"
+
+for node in ${NODES_ARRAY[@]}; do
+  NODE_NAME=${node}
+  header3 "Modify service configuration for ${NODE_NAME}"
+  
+  log "Copy service files into Consul configuration directory"
+  remote_exec ${NODE_NAME} "cp ${CONSUL_CONFIG_DIR}svc/service_mesh/*.hcl ${CONSUL_CONFIG_DIR}"
+
+  log "Reload Consul configuration"
+  _agent_token=`cat ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json | jq -r ".SecretID"`
+
+  log_warn "Agent token: ${_agent_token}"
+
+  remote_exec ${NODE_NAME} "/usr/bin/consul reload -token=${_agent_token}"
+
+done
+
+##########################################################
+header2 "Starting Envoy sidecar proxies"
+
+for node in ${NODES_ARRAY[@]}; do
+  NODE_NAME=${node}
+  header3 "Start Envoy sidecar for ${NODE_NAME}"
+  
+  _agent_token=`cat ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json | jq -r ".SecretID"`
+  
+  ## !todo Remove before fly. Test with bootstrap token
+  _agent_token=${CONSUL_HTTP_TOKEN}
+
+  log "Stop existing instances"
+  _ENVOY_PID=`remote_exec ${NODE_NAME} "pidof envoy"`
+  if [ ! -z ${_ENVOY_PID} ]; then
+    remote_exec ${NODE_NAME} "sudo kill -9 ${_ENVOY_PID}"
+  fi
+
+  log "Start new instance"
+  remote_exec ${NODE_NAME} "/usr/bin/consul connect envoy \
+                              -token=${_agent_token} \
+                              -envoy-binary /usr/bin/envoy \
+                              -sidecar-for ${NODE_NAME}-1 \
+                              ${ENVOY_EXTRA_OPT} -- -l trace > /tmp/sidecar-proxy.log 2>&1 &"
+  
+done
+
+
+
+##########################################################
+header2 "Restart Services on local interface"
+
+for node in ${NODES_ARRAY[@]}; do
+  NODE_NAME=${node}
+  
+  if [ "${NODE_NAME}" == "hashicups-nginx" ]; then
+    log_warn "Not restarting ${NODE_NAME} to provide access"
+  else
+    log "Restarting ${NODE_NAME}"
+    remote_exec ${NODE_NAME} "bash ~/start_service.sh local" > /dev/null 2>&1
+  fi
+done
+
+
+
+
+
+log_err "Consul Token: ${CONSUL_HTTP_TOKEN}"
+
+exit 0
+
+
+
+
 
 # log "Cleaning previous configfuration assets generated"
 # for node in ${NODES_ARRAY[@]}; do
@@ -67,13 +142,6 @@ node "${NODE_NAME}" {
 service_prefix "" {
   policy = "read"
 }
-# Allow the agent to reload configuration
-agent "${NODE_NAME}" {
-  policy = "write"
-}
-agent_prefix "" {
-  policy = "read"
-}
 EOF
 
   consul acl policy create -name "acl-policy-${NODE_NAME}" -description 'Policy for service node' -rules @${STEP_ASSETS}acl-policy-${NODE_NAME}.hcl  > /dev/null 2>&1
@@ -123,4 +191,9 @@ for node in ${NODES_ARRAY[@]}; do
   sleep 1
 
 done
+
+
+log_err "Consul Token: ${CONSUL_HTTP_TOKEN}"
+
+log_err "Consul Token: ${CONSUL_HTTP_TOKEN}"
 

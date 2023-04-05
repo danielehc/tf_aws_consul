@@ -25,40 +25,9 @@ _log_warn() {
   _log "${DEC_WARN}${@}"  
 }
 
-# ## Check if parameter is populated otherwise exits
-# _check_mandatory() {
-#   _param="$1"
-
-#   if [ -z "${!_param}" ]; then 
-#     _log_err "Mandatory parameter: ${_param} not set."
-#     exit 1
-#   fi
-# }
-
-# ## Check if parameter is populated otherwise warns on usage and assigns default
-# _check_optional() {
-#   ## Contains the 'name' of the variable to be tested.
-#   local -n _param_ref="$1"
-#   local _param_value="${!1}"
-#   ## Contains the 'value' to be used as default if ${!name} is not set
-#   local _default_value="$2"
-
-#   echo "${_param_ref} = ${_param_value} : ${_default_value}"
-
-#   if [ -z "${_param_value}" ]; then 
-#     _log_warn "Optional parameter: ${_param_ref} not set...using default"
-#     _param_ref=${_default_value}
-#   fi
-# }
-
 # ++-----------------+
 # || Parameters      |
 # ++-----------------+
-
-## Check parameters configuration
-## This section can be used to introduce failure checks in case a variable is 
-## not set properly. It looks a bit ugly to repeat the variables but it might be
-## come out handy in future developments.
 
 ## Control plane variables
 CONSUL_DATACENTER=${CONSUL_DATACENTER:-"dc1"}
@@ -80,41 +49,6 @@ CONSUL_LOG_LEVEL=${CONSUL_LOG_LEVEL:-"DEBUG"}
 ## Check mandatory variables 
 [ -z "$CONSUL_RETRY_JOIN" ] && _log_err "Mandatory parameter: ${CONSUL_RETRY_JOIN} not set."  && exit 1
 [ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: ${OUTPUT_FOLDER} not set."      && exit 1
-
-# _datacenter=${CONSUL_DATACENTER}
-# _domain=${CONSUL_DOMAIN}
-# _consul_data_dir=${CONSUL_DATA_DIR}
-# _consul_config_dir=${CONSUL_CONFIG_DIR}
-# _consul_server_number=${CONSUL_SERVER_NUMBER}
-
-
-# _dns_recursors=${CONSUL_DNS_RECURSOR}
-# _consul_https_port=${CONSUL_HTTPS_PORT}
-# _consul_dns_port=${CONSUL_DNS_PORT}
-
-# ## ~todo [CHECK] these ones should be set otherwise configuration is not valid
-# _consul_rety_join=${CONSUL_RETRY_JOIN:${RETRY_JOIN}}
-# _consul_log_level="DEBUG"
-# OUTPUT_FOLDER=${OUTPUT_FOLDER:-${STEP_ASSETS}}
-
-# # ++-----------------+
-# # || Variables       |
-# # ++-----------------+
-# DATACENTER=${_datacenter:-"dc1"}
-# DOMAIN=${_domain:-"consul"}
-# CONFIG_DIR=${_consul_config_dir:-"/etc/consul.d/"}
-# DATA_DIR=${_consul_data_dir:-"/opt/consul/"}
-# SERVER_NUMBER=${_consul_server_number:-1}
-# JOIN_STRING=${_consul_rety_join}
-
-# DNS_RECURSOR=${_dns_recursors:-"1.1.1.1"}
-# HTTPS_PORT=${_consul_https_port:-"8443"}
-# DNS_PORT=${_consul_dns_port:-"8600"}
-
-## SECRETS
-## Setting these variables from outside the script can inject pre-existing
-## secrets into the configuration.
-# GOSSIP_KEY="${CONSUL_GOSSIP_KEY}"
 
 # ++-----------------+
 # || Begin           |
@@ -275,8 +209,8 @@ addresses {
 ports {
   http      = 8500
   https     = ${CONSUL_HTTPS_PORT}
-  # grpc      = 8502
-  grpc_tls  = 8502
+  grpc      = 8502
+  grpc_tls  = 8503
   # grpc_tls  = -1
   dns       = ${CONSUL_DNS_PORT}
 }
@@ -296,25 +230,50 @@ EOF
 # agent-server-tls.hcl         |
 # -----------------------------+
 
-## TLS Encryption (requires cert files to be present on the server nodes)
+## TLS Encryption
 tls {
-  defaults {
+  defaults { }
+  https {
     ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
     cert_file = "${CONSUL_CONFIG_DIR}consul-agent.pem"
     key_file  = "${CONSUL_CONFIG_DIR}consul-agent-key.pem"
-    verify_outgoing        = true
-    verify_incoming        = true
-  }
-  https {
     verify_incoming        = false
+    verify_outgoing        = true
   }
   internal_rpc {
+    ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
+    cert_file = "${CONSUL_CONFIG_DIR}consul-agent.pem"
+    key_file  = "${CONSUL_CONFIG_DIR}consul-agent-key.pem"
+    verify_incoming        = true
+    verify_outgoing        = true
     verify_server_hostname = true
   }
   grpc {
-    use_auto_cert = true
+    verify_incoming        = false
+    use_auto_cert = false
   }
 }
+
+# ## TLS Encryption (requires cert files to be present on the server nodes)
+# tls {
+#   defaults {
+#     ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
+#     cert_file = "${CONSUL_CONFIG_DIR}consul-agent.pem"
+#     key_file  = "${CONSUL_CONFIG_DIR}consul-agent-key.pem"
+#     verify_outgoing        = true
+#     verify_incoming        = true
+#   }
+#   https {
+#     verify_incoming        = false
+#   }
+#   internal_rpc {
+#     verify_server_hostname = true
+#   }
+#   grpc {
+#     verify_incoming        = false
+#     use_auto_cert = true
+#   }
+# }
 
 # Enable auto-encrypt for server nodes
 auto_encrypt {
@@ -332,6 +291,7 @@ tee ./agent-server-acl.hcl > /dev/null << EOF
 ## ACL configuration
 acl = {
   enabled = true
+  # default_policy = "allow"
   default_policy = "deny"
   enable_token_persistence = true
   enable_token_replication = true
@@ -352,10 +312,6 @@ telemetry {
 }
 EOF
 
-
-  ## todo remove before fly
-  # cat ./*.hcl
-
   _log "Validate configuration for consul-server-$i"
   consul validate ./  > /dev/null 2>&1
 
@@ -369,9 +325,6 @@ EOF
   popd  > /dev/null 2>&1
 
 done
-
-## todo remove before fly
-# tree "${OUTPUT_FOLDER}"
 
 exit 0
 

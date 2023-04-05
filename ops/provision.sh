@@ -182,10 +182,7 @@ elif [ "$1" == "operate" ]; then
   ## For now the scenario should be safe enough to be ran multiple times on the 
   ## same host with similar output.
  
-  # set -x
-
   ## Generate operate.sh script
-  # set -x
   operate_dry $2
   ## Ececute operate.sh script
   execute_scenario_step "operate"

@@ -102,10 +102,10 @@ for i in `echo ${_svc_checks} | tr ',' '\n'`; do
   {
     id =  "check-${_CHECK_NAME}",
     name = "${_CHECK_NAME} status check",
-    service_id = "${SERVICE}-1",
+    service_id = "${_svc_name}-1",
     tcp  = "${_CHECK_URL}",
-    interval = "1s",
-    timeout = "1s"
+    interval = "5s",
+    timeout = "5s"
   }
 END
 )

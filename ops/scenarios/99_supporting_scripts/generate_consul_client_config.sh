@@ -40,11 +40,13 @@ _log "Parameter Check"
 
 CONSUL_DATACENTER=${CONSUL_DATACENTER:-"dc1"}
 CONSUL_DOMAIN=${CONSUL_DOMAIN:-"consul"}
+CONSUL_CONFIG_DIR=${CONSUL_CONFIG_DIR:-"/etc/consul.d/"}
 CONSUL_DATA_DIR=${CONSUL_DATA_DIR:-"/opt/consul/"}
 CONSUL_LOG_LEVEL=${CONSUL_LOG_LEVEL:-"DEBUG"}
 
 [ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: OUTPUT_FOLDER not set."      && exit 1
 [ -z "$NODE_NAME" ]         && _log_err "Mandatory parameter: NODE_NAME not set."          && exit 1
+[ -z "$CONSUL_RETRY_JOIN" ] && _log_err "Mandatory parameter: CONSUL_RETRY_JOIN not set."  && exit 1
 # [ -z "$CONSUL_GOSSIP_KEY" ] && _log_err "Mandatory parameter: CONSUL_GOSSIP_KEY not set."  && exit 1
 
 
@@ -85,16 +87,16 @@ client_addr = "127.0.0.1"
 bind_addr   = "{{ GetInterfaceIP \"eth0\" }}"
 
 # Join other Consul agents
-retry_join = [ "${CONSUL_JOIN_STRING}" ]
+retry_join = [ "${CONSUL_RETRY_JOIN}" ]
 
 # Ports
 ports {
   http      = 8500
   https     = -1
   # https   = 443
-  # grpc      = 8502
+  grpc      = 8502
+  grpc_tls  = 8503
   # grpc_tls  = -1
-  grpc_tls  = 8502
   dns       = 8600
 }
 
@@ -110,21 +112,42 @@ enable_local_script_checks = true
 # Enable central service config
 enable_central_service_config = true
 
+# ## TLS Encryption
+# tls {
+#   defaults {
+#     ca_file   = "/etc/consul.d/consul-agent-ca.pem"
+#     verify_outgoing        = true
+#     verify_incoming        = true
+#   }
+#   https {
+#     verify_incoming        = false
+#   }
+#   internal_rpc {
+#     verify_server_hostname = true
+#   }
+#   grpc {
+#     verify_incoming        = false
+#     use_auto_cert = true
+#   }
+# }
+
 ## TLS Encryption
 tls {
-  defaults {
-    ca_file   = "/etc/consul.d/consul-agent-ca.pem"
-    verify_outgoing        = true
-    verify_incoming        = true
-  }
+  defaults { }
   https {
+    ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
     verify_incoming        = false
+    verify_outgoing        = true
   }
   internal_rpc {
+    ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
+    verify_incoming        = true
+    verify_outgoing        = true
     verify_server_hostname = true
   }
   grpc {
-    use_auto_cert = true
+    verify_incoming        = false
+    use_auto_cert = false
   }
 }
 
@@ -135,6 +158,7 @@ auto_encrypt {
 ## ACL
 acl {
   enabled        = true
+  # default_policy = "allow"
   default_policy = "deny"
   enable_token_persistence = true
 }

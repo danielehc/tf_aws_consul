@@ -67,6 +67,7 @@ node "${NODE_NAME}" {
 service_prefix "" {
   policy = "read"
 }
+
 # Allow the agent to reload configuration
 agent "${NODE_NAME}" {
   policy = "write"
@@ -75,13 +76,18 @@ agent_prefix "" {
   policy = "read"
 }
 EOF
-
   consul acl policy create -name "acl-policy-${NODE_NAME}" -description 'Policy for service node' -rules @${STEP_ASSETS}acl-policy-${NODE_NAME}.hcl  > /dev/null 2>&1
 
   consul acl token create -description "${NODE_NAME} - Default token" -policy-name acl-policy-${NODE_NAME} --format json > ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json 2> /dev/null
 
   DNS_TOK=`cat ${STEP_ASSETS}secrets/acl-token-dns.json | jq -r ".SecretID"`
   AGENT_TOKEN=`cat ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json | jq -r ".SecretID"` 
+
+  ## !todo: figure before fly - testing with management token
+  DNS_TOK=${CONSUL_HTTP_TOKEN}
+  AGENT_TOKEN=${CONSUL_HTTP_TOKEN}
+
+set +x
 
   tee ${STEP_ASSETS}${NODE_NAME}/agent-acl-tokens.hcl > /dev/null << EOF
 acl {

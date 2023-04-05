@@ -47,6 +47,7 @@ header2 "Copy Consul servers configuration files"
 ## ~todo make all servers discoverable from bastion host
 for i in `seq 0 "$((SERVER_NUMBER-1))"`; do
   
+  ## -todo this thing is ugly. Debug and check paths
   log "Remove pre-existing configuration and stopping pre-existing Consul instances"
   remote_exec consul-server-$i "sudo rm -rf ${CONSUL_CONFIG_DIR}* && \
                                   sudo mkdir -p ${CONSUL_CONFIG_DIR} && \
@@ -86,11 +87,10 @@ done
 ##########################################################
 header2 "Configure ACL"
 
-export CONSUL_HTTP_ADDR="https://consul-server-0${FQDN_SUFFIX}:8443"
+export CONSUL_HTTP_ADDR="https://consul-server-0:8443"
 export CONSUL_HTTP_SSL=true
 export CONSUL_CACERT="${STEP_ASSETS}secrets/consul-agent-ca.pem"
 export CONSUL_TLS_SERVER_NAME="server.${DATACENTER}.${DOMAIN}"
-export CONSUL_FQDN_ADDR="consul-server-0${FQDN_SUFFIX}"
 
 log "ACL Bootstrap"
 
