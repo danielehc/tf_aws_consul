@@ -96,3 +96,42 @@ Once the infrastructure deploy completed:
     ./provision.sh operate 01
     ```
     > `01` refers to the name of the scenario and uses as a reference the name of the folders under `ops/scenarios`. The script will merge all the files under the scenario together in a single script that will be then copied and executed remotely on the BASTION_HOST.
+
+## Scenarios
+
+```
+tree scenarios/
+scenarios/
+├── 00_base
+│   ├── 00_local_vars.env
+│   ├── 01_operator_setup.sh
+│   └── 02_start_hashicups.sh
+├── 01_consul_control_plane
+│   ├── 00_local_vars.env
+│   ├── 01_operator_setup.sh
+│   ├── 02_start_hashicups.sh
+│   └── 03_start_consul_server.sh
+├── 02_service_discovery
+│   ├── 00_local_vars.env
+│   ├── 01_operator_setup.sh
+│   ├── 02_start_hashicups.sh
+│   ├── 03_start_consul_server.sh
+│   └── 04_start_consul_clients_sd.sh
+├── 03_service_mesh
+│   ├── 00_local_vars.env
+│   ├── 01_operator_setup.sh
+│   ├── 02_start_hashicups.sh
+│   ├── 03_start_consul_server.sh
+│   ├── 04_start_consul_clients_sd.sh
+│   └── 05_start_consul_clients_sm.sh
+├── 00_shared_functions.env
+├── 10_scenario_functions.env
+├── 20_infrastructure_functions.env
+└── 99_supporting_scripts
+    ├── generate_consul_client_config.sh
+    ├── generate_consul_server_config.sh
+    ├── generate_consul_server_tokens.sh
+    └── generate_consul_service_config.sh
+
+5 directories, 25 files
+```

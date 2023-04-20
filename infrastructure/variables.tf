@@ -125,3 +125,12 @@ variable "fe_version" {
   description = "Version for the HashiCups Frontend image to be deployed"
   default     = "v1.0.9"
 }
+
+#------------------------------------------------------------------------------#
+## Scenario tuning
+#------------------------------------------------------------------------------#
+
+variable "scenario" {
+  description = "Prerequisites scenario to run at the end of infrastructure provision"
+  default     = "00_base"
+}

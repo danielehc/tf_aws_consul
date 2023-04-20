@@ -67,7 +67,7 @@ resource "aws_instance" "bastion" {
     inline = [
       "echo 'Waiting for user data script to finish'",
       "cloud-init status --wait > /dev/null", 
-      "cd /home/admin/ops && bash ./provision.sh operate 00"
+      "cd /home/admin/ops && bash ./provision.sh operate ${var.scenario}"
     ]
   }
   # ## Start Monitoring Suite
