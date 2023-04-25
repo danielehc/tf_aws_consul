@@ -1,137 +1,196 @@
 # Scenario Provision Tool
 
-**Only TL;DR Version is available for now :(** 
+> **WARNING:** the script is currently under development. Some configurations might not work as expected. **Do not test on production environments.**
 
-> **WARNING:** the script is under development currently so some configurations might not work. Do not test on production environments.
+## Test scenarios
 
-## What does it do?
+Using the pre-configured environments you can spin-up scenarios to be used in
+tutorials or as test environments.
 
-Provides useful tools and templates to deploy a Consul GetStarted scenarios on VMs.
+### Available environments
 
-## How do I use it?
-
-Deploy infrastructure:
-
-```
-cd ./infrastructure
-```
+The environments are defined inside the `./infrastructure/aws/conf` 
+folder:
 
 ```
-terraform init
+tree ./infrastructure/aws/conf
+./infrastructure/aws/conf
+├── 00_hashicups.tfvars
+├── 01_consul.tfvars
+├── 02_service_discovery.tfvars
+├── 03_service_mesh.tfvars
+└── 04_service_mesh_monitoring.tfvars
+
+0 directories, 5 files
+
+```
+
+### Spin-up environment
+
+> **Info:** only AWS cloud provider scenarios are available ATM.
+
+Use one of the configurations available as parameter for `terraform`:
+
+```
+cd ./infrastructure/aws
 ```
 
 ```
-terraform plan
+terraform destroy --auto-approve && \
+    terraform apply --auto-approve -var-file=./conf/00_hashicups.tfvars
 ```
 
-```
-terraform apply
-```
+### Scenario Output
 
-The deploy prints some output that is helpful to interact with the scenario:
+> **Info:** the tool is current active development, the info in this section 
+might be outdated. Refer to the actual output of your `terraform apply` command.
 
-```plaintext
-connection_string = "ssh -i certs/id_rsa.pem admin@35.88.242.132"
-ip_api = "34.217.68.40"
-ip_bastion = "35.88.242.132"
+```
+terraform output
+
+connection_string = "ssh -i certs/id_rsa.pem admin@`terraform output -raw ip_bastion`"
+ip_api = "18.236.72.2"
+ip_bastion = "35.88.138.11"
 ip_consul = [
-  "54.185.216.179",
+  "18.236.67.168",
 ]
-ip_db = "35.93.156.123"
-ip_fe = "34.216.232.254"
-ip_nginx = "54.185.18.73"
-remote_ops = "export BASTION_HOST=35.88.242.132"
-ui_consul = "https://54.185.216.179:8443"
-ui_grafana = "http://35.88.242.132:3000"
-ui_hashicups = "http://54.185.18.73"
-ui_loki = "http://35.88.242.132:3100"
-ui_mimir = "http://35.88.242.132:9009"
+ip_db = "18.236.150.222"
+ip_fe = "34.214.10.170"
+ip_nginx = "34.220.128.125"
+ui_consul = "https://18.236.67.168:8443"
+ui_hashicups = "http://34.220.128.125"
 ```
 
-Use:
+* `connection_string`: is the command you can use to connect via SSH to the 
+Bastion Host. By changing the `ip_bastion` to one of the `ip_*` output names you
+can connect to the respective host.
 
-* `connection_string` to SSH into the Bastion Host
+* `ip_bastion`: Public IP of the *Bastion Host*. This is a VM containing all necessary tools to interact with the environment. The tool uses this host as a entrypoint into the environment and as a centralized scenario orchestrator. Read more on [Bastion Host](./docs/BastionHost.md).
 
-* use `remote_ops` in combination with the `ops/provision.sh` script to test scenario from the local node.
+* `ip_*`: Public IP of the `*` host. Used for UI and SSH connections.
 
-## Repository structure
+* `ui_consul`: UI for Consul Control Plane. Some scenario do not start Consul
+servers or do not deploy an HCP Consul cluster. In those scenarios the URL will 
+not work or might be empty. This is expected for those scenarios that test the
+Consul daemon lifecycle.
 
-The repository is divided in three main folders:
+* `ui_hashicups`: UI for the test application, HashiCups, deployed in all 
+scenarios. For most scenarios the UI corresponds to the `nginx` host.
 
-* assets
-* infrastructure
-* ops
+## The demo application
 
-### Assets Folder
+All the scenarios include a demo application, *HashiCups*, used to demonstrate Consul features in a setting that can mimic real-life deployments.
 
-Contains the shared assets you need during the scenario operations.
-
-### Infrastructure Folder
-Contains the TF code to deploy the infrastructure.
-
-It will be split across different cloud provider in the future. For now is AWS only.
-
-### Ops Folder
-Contains the `provision.sh` tool and the scenario definition files under the folder `scenarios/`
-
-
-## Test remote operations
-
-Once the infrastructure deploy completed:
-
-1. Copy the `remote_ops` value
-    ```
-    terraform output -raw remote_ops
-    ```
-2. Move into the ops folder
-    ```
-    cd ../ops
-    ```
-3. Export the variable `BASTION_HOST` defined by the TF output
-    ```
-    export BASTION_HOST=35.88.242.132
-    ```
-4. Try deploy a scenario
-    ```
-    ./provision.sh operate 01
-    ```
-    > `01` refers to the name of the scenario and uses as a reference the name of the folders under `ops/scenarios`. The script will merge all the files under the scenario together in a single script that will be then copied and executed remotely on the BASTION_HOST.
+Read more in the [HashiCups Demo Application](./docs/HashiCups.md) page.
 
 ## Scenarios
 
-```
-tree scenarios/
-scenarios/
-├── 00_base
-│   ├── 00_local_vars.env
-│   ├── 01_operator_setup.sh
-│   └── 02_start_hashicups.sh
-├── 01_consul_control_plane
-│   ├── 00_local_vars.env
-│   ├── 01_operator_setup.sh
-│   ├── 02_start_hashicups.sh
-│   └── 03_start_consul_server.sh
-├── 02_service_discovery
-│   ├── 00_local_vars.env
-│   ├── 01_operator_setup.sh
-│   ├── 02_start_hashicups.sh
-│   ├── 03_start_consul_server.sh
-│   └── 04_start_consul_clients_sd.sh
-├── 03_service_mesh
-│   ├── 00_local_vars.env
-│   ├── 01_operator_setup.sh
-│   ├── 02_start_hashicups.sh
-│   ├── 03_start_consul_server.sh
-│   ├── 04_start_consul_clients_sd.sh
-│   └── 05_start_consul_clients_sm.sh
-├── 00_shared_functions.env
-├── 10_scenario_functions.env
-├── 20_infrastructure_functions.env
-└── 99_supporting_scripts
-    ├── generate_consul_client_config.sh
-    ├── generate_consul_server_config.sh
-    ├── generate_consul_server_tokens.sh
-    └── generate_consul_service_config.sh
+Here a brief description of the available scenarios.
 
-5 directories, 25 files
+### 00_hashicups
+
+Deploy:
+
 ```
+terraform apply --auto-approve -var-file=./conf/00_hashicups.tfvars
+```
+
+![00_hashicups](docs/img/gs_vms-diagram-00.png)
+
+* HashiCups application installed on 4 VMs
+* One empty VM ready to host Consul server
+* One *Bastion Host* VM with all tools pre-installed to interact with the environment.
+
+### 01_consul
+
+Deploy:
+
+```
+terraform apply --auto-approve -var-file=./conf/01_consul.tfvars
+```
+
+![01_consul](docs/img/gs_vms-diagram-01.png)
+
+* All steps of scenario `00_hashicups`.
+* Consul server configured for TLS and Gossip encryption and with restrictive ACL defaults.
+* Consul server running.
+* Consul ACL system initialized.
+* Restricted token applied to the Consul server agent.
+
+### 02_service_discovery
+
+Deploy:
+
+```
+terraform apply --auto-approve -var-file=./conf/02_service_discovery.tfvars
+```
+
+![02_service_discovery](docs/img/gs_vms-diagram-02.png)
+
+* All steps of scenario `01_consul`.
+* `for each service`
+    * Consul client configured for TLS and Gossip encryption and with restrictive ACL defaults.
+    * Consul client tokens generated and added to the Consul configuration.
+    * Service discovery configuration files created and added the the Consul configuration.
+    * Consul client running
+
+### 03_service_mesh
+
+Deploy:
+
+```
+terraform apply --auto-approve -var-file=./conf/03_service_mesh.tfvars
+```
+
+![03_service_mesh](docs/img/gs_vms-diagram-03.png)
+
+* All steps of scenario `02_service_discovery`.
+* `for each service`
+    * Consul service mesh configuration files created for the service and added to the Consul configuration replacing the service discovery configuration.
+    * Consul client agent restarted to apply the configuration change
+    * Envoy sidecar proxy running
+    * Service process configuration change to use only `localhost` references.
+    * Service process restarted to listen on `localhost` interface only.
+* Permissive `* > *` intention configured,to allow traffic.
+
+
+### 04_service_mesh_monitoring [DRAFT]
+
+Deploy:
+
+```
+terraform apply --auto-approve -var-file=./conf/04_service_mesh_monitoring.tfvars
+```
+
+* All steps of scenario `03_service_mesh`.
+* Consul server configuration changed for monitoring.
+* Consul server agent restarted to apply the configuration change
+* `for each service`
+    * Grafana agent configuration generated
+    * Grafana agent process started
+
+## Separate scripts
+
+During the environment setup, some steps of the UX are performed using external scripts. 
+Those steps are usually the operations more dependent on your specific deployment.
+We detached those steps into supporting scripts to:
+* provide easier reference for those steps
+* avoid code drift for the core parts of the workflow
+
+The scripts are located under the `./ops/scenarios/99_supporting_scripts/` folder:
+
+```
+tree ./ops/scenarios/99_supporting_scripts/
+./ops/scenarios/99_supporting_scripts/
+├── generate_consul_client_config.sh
+├── generate_consul_server_config.sh
+├── generate_consul_server_tokens.sh
+└── generate_consul_service_config.sh
+
+0 directories, 4 files
+
+```
+
+You can use the scripts in this folder as a source of inspiration for writing your custom configuration scripts.
+
+Read more on the different scripts on the [Separate Scripts](./docs/SeparateScripts.md) page.

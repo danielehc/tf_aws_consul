@@ -82,6 +82,7 @@ done
 
 
 
+
 log_err "Consul Token: ${CONSUL_HTTP_TOKEN}"
 
 exit 0

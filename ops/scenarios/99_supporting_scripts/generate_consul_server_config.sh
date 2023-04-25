@@ -40,11 +40,13 @@ CONSUL_HTTPS_PORT=${CONSUL_HTTPS_PORT:-"8443"}
 
 CONSUL_CONFIG_DIR=${CONSUL_CONFIG_DIR:-"/etc/consul.d/"}
 CONSUL_DATA_DIR=${CONSUL_DATA_DIR:-"/opt/consul/"}
+CONSUL_LOG_LEVEL=${CONSUL_LOG_LEVEL:-"DEBUG"}
 
+## When running the script as part of an automated scenario
+## the STEP_ASSETS variable will be populated by the calling script.
 OUTPUT_FOLDER=${OUTPUT_FOLDER:-"${STEP_ASSETS}"}
 
 CONSUL_GOSSIP_KEY=${CONSUL_GOSSIP_KEY:-""}
-CONSUL_LOG_LEVEL=${CONSUL_LOG_LEVEL:-"DEBUG"}
 
 ## Check mandatory variables 
 [ -z "$CONSUL_RETRY_JOIN" ] && _log_err "Mandatory parameter: ${CONSUL_RETRY_JOIN} not set."  && exit 1
