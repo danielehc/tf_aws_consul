@@ -42,7 +42,7 @@ terraform destroy --auto-approve && \
 
 ### Scenario Output
 
-> **Info:** the tool is current active development, the info in this section 
+> **Info:** the tool is currently under active development, the info in this section 
 might be outdated. Refer to the actual output of your `terraform apply` command.
 
 ```
