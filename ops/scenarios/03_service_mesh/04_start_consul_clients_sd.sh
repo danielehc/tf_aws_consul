@@ -87,8 +87,6 @@ EOF
   DNS_TOK=${CONSUL_HTTP_TOKEN}
   AGENT_TOKEN=${CONSUL_HTTP_TOKEN}
 
-set +x
-
   tee ${STEP_ASSETS}${NODE_NAME}/agent-acl-tokens.hcl > /dev/null << EOF
 acl {
   tokens {

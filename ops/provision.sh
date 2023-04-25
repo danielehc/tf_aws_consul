@@ -136,7 +136,8 @@ else
     SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 
     ## This is how to locate SSH certificate on the Bation Host
-    SSH_CERT="../infrastructure/certs/id_rsa.pem"
+    ## ~todo Parametrize cloud provider (or move tf_home one level up)
+    SSH_CERT="../infrastructure/aws/certs/id_rsa.pem"
 
     ## If running the script from a remote machine we need to redefine the 
     ## working paths to make the scenario genration work properly.

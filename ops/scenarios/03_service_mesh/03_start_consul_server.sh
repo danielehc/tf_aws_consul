@@ -82,6 +82,7 @@ done
 ##########################################################
 header2 "Configure ACL"
 
+## Consul CLI Configuration
 export CONSUL_HTTP_ADDR="https://consul-server-0:8443"
 export CONSUL_HTTP_SSL=true
 export CONSUL_CACERT="${STEP_ASSETS}secrets/consul-agent-ca.pem"
@@ -109,6 +110,7 @@ for i in `seq 1 9`; do
 
 done
 
+## Consul CLI Configuration
 export CONSUL_HTTP_TOKEN=`cat ${STEP_ASSETS}secrets/acl-token-bootstrap.json | jq -r ".SecretID"`
 
 ##########################################################

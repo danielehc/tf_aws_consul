@@ -44,40 +44,6 @@ OUTPUT_FOLDER=${OUTPUT_FOLDER:-"${STEP_ASSETS}"}
 [ -z "$CONSUL_HTTP_TOKEN" ] && _log_err "Mandatory parameter: ${CONSUL_HTTP_TOKEN} not set."  && exit 1
 [ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: ${OUTPUT_FOLDER} not set."      && exit 1
 
-# ## This section can be used to introduce failure checks in case a variable is 
-# ## not set properly. It looks a bit ugly to repeat the variables but it might be
-# ## come out handy in future developments.
-# _datacenter=${CONSUL_DATACENTER}
-# _domain=${CONSUL_DOMAIN}
-# _consul_server_number=${CONSUL_SERVER_NUMBER}
-# # _consul_data_dir=${CONSUL_DATA_DIR}
-# # _consul_config_dir=${CONSUL_CONFIG_DIR}
-
-
-# ## ~todo [CHECK] these ones should be set otherwise configuration is not valid
-# OUTPUT_FOLDER=${OUTPUT_FOLDER:-${STEP_ASSETS}}
-# _consul_token=${CONSUL_HTTP_TOKEN}
-
-# # ++-----------------+
-# # || Variables       |
-# # ++-----------------+
-# DATACENTER=${_datacenter:-"dc1"}
-# DOMAIN=${_domain:-"consul"}
-# SERVER_NUMBER=${_consul_server_number:-1}
-# TOKEN=${_consul_token}
-# # CONFIG_DIR=${_consul_config_dir:-"/etc/consul.d/"}
-# # DATA_DIR=${_consul_data_dir:-"/opt/consul/"}
-# # JOIN_STRING=${_consul_rety_join}
-
-# # DNS_RECURSOR=${_dns_recursors:-"1.1.1.1"}
-# HTTPS_PORT=${_consul_https_port:-"8443"}
-# # DNS_PORT=${_consul_dns_port:-"8600"}
-
-## SECRETS
-## Setting these variables from outside the script can inject pre-existing
-## secrets into the configuration.
-# GOSSIP_KEY="${CONSUL_GOSSIP_KEY}"
-
 # ++-----------------+
 # || Begin           |
 # ++-----------------+
@@ -118,6 +84,7 @@ EOF
 
 _log "Setting environment variables to communicate with Consul"
 
+## ~todo: Make CONSUL_HTTP_ADDR mandatory from outside 
 export CONSUL_HTTP_ADDR="https://consul-server-0${FQDN_SUFFIX}:${CONSUL_HTTPS_PORT}"
 export CONSUL_HTTP_SSL=true
 export CONSUL_CACERT="${OUTPUT_FOLDER}secrets/consul-agent-ca.pem"
