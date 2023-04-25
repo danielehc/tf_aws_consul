@@ -2,12 +2,7 @@
 
 docker rm -f hashicups-frontend
 
-SERVICE_MESH=${CONFIGURE_SERVICE_MESH}
-
-if   [ "$${SERVICE_MESH}" == true ]; then
-    # Start Application on localhost
-    NETWORK="--publish 127.0.0.1:3000:3000"
-elif [ "$${1}" == local ]; then
+if [ "$${1}" == local ]; then
     # Start Application on localhost
     NETWORK="--publish 127.0.0.1:3000:3000"
 else

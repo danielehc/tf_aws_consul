@@ -4,25 +4,11 @@
 docker rm -f hashicups-api-payments hashicups-api-product hashicups-api-public
 sudo rm -rf /home/admin/conf.json
 
-SERVICE_MESH=${CONFIGURE_SERVICE_MESH}
-
-
-
-if   [ "$${SERVICE_MESH}" == true ]; then
+if [ "$${1}" == local ]; then
   # Start Application on localhost
   NETWORK_PAY="--publish 127.0.0.1:8080:8080"
-  NETWORK_PRO="--publish 127.0.0.1:9090:9090"
-  NETWORK_PUB="--publish 127.0.0.1:8081:8081"
-  BIND_PRO="127.0.0.1"
-  BIND_PUB="127.0.0.1"
-  DB="127.0.0.1"
-  PROD="127.0.0.1"
-  PAY="127.0.0.1"
-elif [ "$${1}" == local ]; then
-  # Start Application on localhost
-  NETWORK_PAY="--publish 127.0.0.1:8080:8080"
-  NETWORK_PRO="--publish 127.0.0.1:9090:9090"
-  NETWORK_PUB="--publish 127.0.0.1:8081:8081"
+  NETWORK_PRO="--network host"
+  NETWORK_PUB="--network host"
   BIND_PRO="127.0.0.1"
   BIND_PUB="127.0.0.1"
   DB="127.0.0.1"
@@ -47,7 +33,7 @@ docker run \
 ## Product API
 tee /home/admin/conf.json > /dev/null << EOF
 {
-  "db_connection": "host=$${DB} port=5432 user=hashicups password=hahicups_pwd dbname=products sslmode=disable",
+  "db_connection": "host=$${DB} port=5432 user=hashicups password=hashicups_pwd dbname=products sslmode=disable",
   "bind_address": "$${BIND_PRO}:9090",
   "metrics_address": "$${BIND_PRO}:9103"
 }

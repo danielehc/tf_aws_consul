@@ -95,8 +95,8 @@ ports {
   https     = -1
   # https   = 443
   grpc      = 8502
-  grpc_tls  = 8503
-  # grpc_tls  = -1
+  # grpc_tls  = 8503
+  grpc_tls  = -1
   dns       = 8600
 }
 
@@ -133,7 +133,7 @@ enable_central_service_config = true
 
 ## TLS Encryption
 tls {
-  defaults { }
+  # defaults { }
   https {
     ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
     verify_incoming        = false
@@ -145,10 +145,11 @@ tls {
     verify_outgoing        = true
     verify_server_hostname = true
   }
-  grpc {
-    verify_incoming        = false
-    use_auto_cert = false
-  }
+  # grpc {
+  #   verify_incoming        = false
+  #   verify_outgoing        = true
+  #   use_auto_cert          = false
+  # }
 }
 
 auto_encrypt {

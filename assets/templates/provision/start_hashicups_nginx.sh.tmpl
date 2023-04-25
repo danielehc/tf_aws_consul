@@ -4,9 +4,12 @@ export http_upgrade='$http_upgrade'
 export host='$host'
 export http_upgrade='$http_upgrade'
 
-SERVICE_MESH=${CONFIGURE_SERVICE_MESH}
+# SERVICE_MESH=${CONFIGURE_SERVICE_MESH}
 
 if [ "$${1}" == local ]; then
+  FRONTEND="127.0.0.1"
+  API="127.0.0.1"
+elif [ "$${1}" == mesh ]; then
   FRONTEND="127.0.0.1"
   API="127.0.0.1"
 else

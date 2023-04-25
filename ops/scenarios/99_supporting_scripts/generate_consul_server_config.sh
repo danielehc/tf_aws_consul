@@ -199,6 +199,7 @@ bind_addr   = "{{ GetInterfaceIP \"eth0\" }}"
 
 addresses {
   grpc = "127.0.0.1"
+  grpc_tls = "127.0.0.1"
   http = "127.0.0.1"
   // http = "0.0.0.0"
   https = "0.0.0.0"
@@ -207,12 +208,13 @@ addresses {
 }
 
 ports {
-  http      = 8500
-  https     = ${CONSUL_HTTPS_PORT}
-  grpc      = 8502
-  grpc_tls  = 8503
+  http        = 8500
+  https       = ${CONSUL_HTTPS_PORT}
+  # grpc      = 8502
+  grpc        = -1
+  grpc_tls    = 8503
   # grpc_tls  = -1
-  dns       = ${CONSUL_DNS_PORT}
+  dns         = ${CONSUL_DNS_PORT}
 }
 
 # Join other Consul agents
@@ -232,7 +234,7 @@ EOF
 
 ## TLS Encryption
 tls {
-  defaults { }
+  # defaults { }
   https {
     ca_file   = "${CONSUL_CONFIG_DIR}consul-agent-ca.pem"
     cert_file = "${CONSUL_CONFIG_DIR}consul-agent.pem"
@@ -248,10 +250,10 @@ tls {
     verify_outgoing        = true
     verify_server_hostname = true
   }
-  grpc {
-    verify_incoming        = false
-    use_auto_cert = false
-  }
+  # grpc {
+  #   verify_incoming        = false
+  #   use_auto_cert = false
+  # }
 }
 
 # ## TLS Encryption (requires cert files to be present on the server nodes)

@@ -4,7 +4,7 @@ output "ip_bastion" {
 }
 
 output "connection_string" {
-  value = "ssh -i certs/id_rsa.pem admin@${aws_instance.bastion.public_ip}"
+  value = "ssh -i certs/id_rsa.pem admin@`terraform output -raw ip_bastion`"
 }
 
 

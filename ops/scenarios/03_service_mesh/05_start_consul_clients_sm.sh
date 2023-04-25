@@ -71,6 +71,7 @@ for node in ${NODES_ARRAY[@]}; do
   
   if [ "${NODE_NAME}" == "hashicups-nginx" ]; then
     log_warn "Not restarting ${NODE_NAME} to provide access"
+    remote_exec ${NODE_NAME} "bash ~/start_service.sh mesh" > /dev/null 2>&1
   else
     log "Restarting ${NODE_NAME}"
     remote_exec ${NODE_NAME} "bash ~/start_service.sh local" > /dev/null 2>&1
