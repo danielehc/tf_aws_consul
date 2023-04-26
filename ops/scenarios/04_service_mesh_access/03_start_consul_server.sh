@@ -126,12 +126,22 @@ header2 "Change Server VMs DNS"
 for i in `seq 0 "$((SERVER_NUMBER-1))"`; do
   log "Change DNS configuration on consul-server-$i"
   
-  # remote_exec consul-server-$i \
-  #   "/usr/bin/consul agent \
-  #   -log-file=/tmp/consul-server-$i.${DATACENTER}.${DOMAIN} \
-  #   -config-dir=${CONSUL_CONFIG_DIR} > /tmp/consul-server.log 2>&1 &" 
+  _consul_resolv=$(cat << EOF
 
-  # sleep 1
+domain ${CONSUL_DOMAIN}
+search ${CONSUL_DOMAIN}
+nameserver 127.0.0.1
+
+EOF
+)
+
+  # remote_exec consul-server-$i \
+  #   "echo -n \"${_consul_resolv}\n\" | cat - /etc/resolv.conf | sudo tee /etc/resolv.conf"
+  
+  remote_exec consul-server-$i \
+    "sudo iptables --table nat --append OUTPUT --destination localhost --protocol udp --match udp --dport 53 --jump REDIRECT --to-ports 8600 && \
+     sudo iptables --table nat --append OUTPUT --destination localhost --protocol tcp --match tcp --dport 53 --jump REDIRECT --to-ports 8600" 
+
 done
 
 

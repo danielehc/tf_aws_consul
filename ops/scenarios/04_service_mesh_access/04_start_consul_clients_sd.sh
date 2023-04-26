@@ -152,13 +152,25 @@ done
 header2 "Change DNS for client agents"
 
 ## -todo Change DNS
-for i in `seq 0 "$((SERVER_NUMBER-1))"`; do
-  log "Change DNS configuration on consul-server-$i"
+for node in ${NODES_ARRAY[@]}; do
+  export NODE_NAME=${node}
+  log "Change DNS configuration on ${NODE_NAME}"
+
+  _consul_resolv=$(cat << EOF
+
+domain ${CONSUL_DOMAIN}
+search ${CONSUL_DOMAIN}
+nameserver 127.0.0.1
+
+EOF
+)
+
+  # remote_exec ${NODE_NAME} \
+  #   "echo -n \"${_consul_resolv}\" | cat - /etc/resolv.conf | sudo tee /etc/resolv.conf"
   
-  # remote_exec consul-server-$i \
-  #   "/usr/bin/consul agent \
-  #   -log-file=/tmp/consul-server-$i.${DATACENTER}.${DOMAIN} \
-  #   -config-dir=${CONSUL_CONFIG_DIR} > /tmp/consul-server.log 2>&1 &" 
+  remote_exec ${NODE_NAME} \
+    "sudo iptables --table nat --append OUTPUT --destination localhost --protocol udp --match udp --dport 53 --jump REDIRECT --to-ports 8600 && \
+     sudo iptables --table nat --append OUTPUT --destination localhost --protocol tcp --match tcp --dport 53 --jump REDIRECT --to-ports 8600" 
 
   # sleep 1
 done
