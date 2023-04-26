@@ -31,19 +31,15 @@ for node in ${NODES_ARRAY[@]}; do
   log "[EXTERNAL SCRIPT] - Generate Consul config"  
   execute_supporting_script "generate_consul_client_config.sh"
 
-  ## MARK: [script] generate_consul_service_config.sh
-  ## -todo move service definition map outside
-  log "[EXTERNAL SCRIPT] - Generate services config"
-  execute_supporting_script "generate_consul_service_config.sh"
-
-  ## This step is Service Discovery so we copy the relevant service definition 
-  ## into Consul configuration
-  cp ${STEP_ASSETS}${NODE_NAME}/svc/service_discovery/*.hcl "${STEP_ASSETS}${NODE_NAME}"
 
   log "Generate client tokens"
 
   tee ${STEP_ASSETS}acl-policy-${NODE_NAME}.hcl > /dev/null << EOF
 # Allow the service and its sidecar proxy to register into the catalog.
+# service_prefix "${NODE_NAME}" {
+#     policy = "write"
+# }
+
 service "${NODE_NAME}" {
     policy = "write"
 }
@@ -76,16 +72,17 @@ agent_prefix "" {
   policy = "read"
 }
 EOF
+  
   consul acl policy create -name "acl-policy-${NODE_NAME}" -description 'Policy for service node' -rules @${STEP_ASSETS}acl-policy-${NODE_NAME}.hcl  > /dev/null 2>&1
 
-  consul acl token create -description "${NODE_NAME} - Default token" -policy-name acl-policy-${NODE_NAME} --format json > ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json 2> /dev/null
+  consul acl token create -description "${NODE_NAME} - Agent token" -policy-name acl-policy-${NODE_NAME} --format json > ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json 2> /dev/null
 
   DNS_TOK=`cat ${STEP_ASSETS}secrets/acl-token-dns.json | jq -r ".SecretID"`
   AGENT_TOKEN=`cat ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json | jq -r ".SecretID"` 
 
   ## !todo: figure before fly - testing with management token
-  DNS_TOK=${CONSUL_HTTP_TOKEN}
-  AGENT_TOKEN=${CONSUL_HTTP_TOKEN}
+  # DNS_TOK=${CONSUL_HTTP_TOKEN}
+  # AGENT_TOKEN=${CONSUL_HTTP_TOKEN}
 
   tee ${STEP_ASSETS}${NODE_NAME}/agent-acl-tokens.hcl > /dev/null << EOF
 acl {
@@ -97,17 +94,40 @@ acl {
 }
 EOF
 
+  ## Adding the token to the service definition files for anti-entropy
+  ## !todo [CHECK BEHAVIOR]: Why is config_file_service_registration not enforced?
+  ## Is it safe enough to set default = agent ? After all the client is not 
+  ## exposing anything sensitive.
+  export _agent_token=${AGENT_TOKEN}
+
+  ## MARK: [script] generate_consul_service_config.sh
+  ## -todo move service definition map outside
+  log "[EXTERNAL SCRIPT] - Generate services config"
+  execute_supporting_script "generate_consul_service_config.sh"
+
+  unset _agent_token
+
+  ## This step is Service Discovery so we copy the relevant service definition 
+  ## into Consul configuration
+  cp ${STEP_ASSETS}${NODE_NAME}/svc/service_discovery/*.hcl "${STEP_ASSETS}${NODE_NAME}"
+
   log "Clean remote node"
   
   remote_exec ${NODE_NAME} "sudo rm -rf ${CONSUL_CONFIG_DIR}* && \
                             sudo rm -rf ${CONSUL_DATA_DIR}* && \
                             sudo chmod g+w ${CONSUL_DATA_DIR}"
 
+  ## Stop already running Consul processes
   _CONSUL_PID=`remote_exec ${NODE_NAME} "pidof consul"`
   if [ ! -z "${_CONSUL_PID}" ]; then
     remote_exec ${NODE_NAME} "sudo kill -9 ${_CONSUL_PID}"
   fi
 
+  ## Stop already running Envoy processes (helps idempotency)
+  _ENVOY_PID=`remote_exec ${NODE_NAME} "pidof envoy"`
+  if [ ! -z "${_ENVOY_PID}" ]; then
+    remote_exec ${NODE_NAME} "sudo kill -9 ${_ENVOY_PID}"
+  fi
 
   log "Copy configuration on client nodes"
   remote_copy ${NODE_NAME} "${STEP_ASSETS}${NODE_NAME}/*" "${CONSUL_CONFIG_DIR}" 

@@ -77,6 +77,12 @@ _header "[${NODE_NAME}]"
 
 _log "Parameter Check"
 
+## If a variable _agent_token is set includes the token parameter to the 
+## service configuration
+if [ ! -z "${_agent_token}" ]; then
+  _svc_token="token = \"${_agent_token}\""
+fi
+
 [ -z "$OUTPUT_FOLDER" ] && _log_err "Mandatory parameter: OUTPUT_FOLDER not set."      && exit 1
 [ -z "$NODE_NAME" ]     && _log_err "Mandatory parameter: NODE_NAME not set."          && exit 1
 
@@ -178,7 +184,8 @@ service {
   id = "${_svc_name}-1"
   tags = ["v1"]
   port = ${_svc_port}
-  
+  ${_svc_token}
+
   ${_CHECKS_WRAPPER}
 }
 EOF
@@ -190,6 +197,7 @@ service {
   name = "${_svc_name}"
   id = "${_svc_name}-1"
   port = ${_svc_port}
+  ${_svc_token}
   connect {
     sidecar_service { ${_UPS_WRAPPER} }
   }  

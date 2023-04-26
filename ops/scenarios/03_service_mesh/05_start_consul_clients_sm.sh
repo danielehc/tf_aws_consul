@@ -28,7 +28,7 @@ for node in ${NODES_ARRAY[@]}; do
   log "Reload Consul configuration"
   _agent_token=`cat ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json | jq -r ".SecretID"`
 
-  log_warn "Agent token: ${_agent_token}"
+  # log_warn "Agent token: ${_agent_token}"
 
   remote_exec ${NODE_NAME} "/usr/bin/consul reload -token=${_agent_token}"
 
@@ -40,12 +40,11 @@ header2 "Starting Envoy sidecar proxies"
 for node in ${NODES_ARRAY[@]}; do
   NODE_NAME=${node}
   header3 "Start Envoy sidecar for ${NODE_NAME}"
-  
   _agent_token=`cat ${STEP_ASSETS}secrets/acl-token-${NODE_NAME}.json | jq -r ".SecretID"`
   
   ## !todo Remove before fly. Test with bootstrap token
-  _agent_token=${CONSUL_HTTP_TOKEN}
-
+  # _agent_token=${CONSUL_HTTP_TOKEN}
+  
   log "Stop existing instances"
   _ENVOY_PID=`remote_exec ${NODE_NAME} "pidof envoy"`
   if [ ! -z ${_ENVOY_PID} ]; then
@@ -58,7 +57,6 @@ for node in ${NODES_ARRAY[@]}; do
                               -envoy-binary /usr/bin/envoy \
                               -sidecar-for ${NODE_NAME}-1 \
                               ${ENVOY_EXTRA_OPT} -- -l trace > /tmp/sidecar-proxy.log 2>&1 &"
-  
 done
 
 ##########################################################
