@@ -7,6 +7,9 @@ output "connection_string" {
   value = "ssh -i certs/id_rsa.pem admin@`terraform output -raw ip_bastion`"
 }
 
+output "ip_gw_api" {
+  value = aws_instance.gateway-api.public_ip
+}
 
 output "ip_db" {
   value = aws_instance.database.public_ip

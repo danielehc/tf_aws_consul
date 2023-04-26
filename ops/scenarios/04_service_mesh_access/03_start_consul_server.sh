@@ -118,3 +118,20 @@ header2 "Configure servers token"
 
 ## MARK: [script] generate_consul_server_tokens.sh
 execute_supporting_script "generate_consul_server_tokens.sh"
+
+##########################################################
+header2 "Change Server VMs DNS"
+
+## -todo Change DNS
+for i in `seq 0 "$((SERVER_NUMBER-1))"`; do
+  log "Change DNS configuration on consul-server-$i"
+  
+  # remote_exec consul-server-$i \
+  #   "/usr/bin/consul agent \
+  #   -log-file=/tmp/consul-server-$i.${DATACENTER}.${DOMAIN} \
+  #   -config-dir=${CONSUL_CONFIG_DIR} > /tmp/consul-server.log 2>&1 &" 
+
+  # sleep 1
+done
+
+

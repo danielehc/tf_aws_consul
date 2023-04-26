@@ -261,7 +261,7 @@ resource "aws_security_group" "ingress-monitoring-suite" {
 }
 
 resource "aws_security_group" "ingress-envoy" {
-  name   = "allow-envoy-sh"
+  name   = "allow-envoy-sg"
   vpc_id = module.vpc.vpc_id
 
   # Allow Grafana Access
@@ -269,6 +269,27 @@ resource "aws_security_group" "ingress-envoy" {
     cidr_blocks = ["0.0.0.0/0"]
     from_port   = 21000
     to_port     = 21255
+    protocol    = "tcp"
+  }
+  
+  // Terraform removes the default rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "ingress-gw-api" {
+  name   = "allow-api-gw-sg"
+  vpc_id = module.vpc.vpc_id
+
+  # Allow Grafana Access
+  ingress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8443
+    to_port     = 8443
     protocol    = "tcp"
   }
   

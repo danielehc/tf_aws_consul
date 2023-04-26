@@ -11,4 +11,4 @@ consul_domain = "consul"
 server_number = 1
 
 ## Scenario configuration
-scenario = "04_service_mesh_monitoring"
+scenario = "05_service_mesh_monitoring"

@@ -172,13 +172,13 @@ ui_config {
   enabled = true
 
   dashboard_url_templates {
-    service = "http://${GRAFANA_URI}/d/hashicups/hashicups?orgId=1&var-service={{Service.Name}}"
+    service = "http://${GRAFANA_URI}:3000/d/hashicups/hashicups?orgId=1&var-service={{Service.Name}}"
   }
 
   metrics_provider = "prometheus"
 
   metrics_proxy {
-    base_url = "http://${PROMETHEUS_URI}/prometheus"
+    base_url = "http://${PROMETHEUS_URI}:9009/prometheus"
     path_allowlist = ["/api/v1/query_range", "/api/v1/query", "/prometheus/api/v1/query_range", "/prometheus/api/v1/query"]
   }
 }

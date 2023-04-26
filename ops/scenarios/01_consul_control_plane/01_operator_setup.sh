@@ -22,45 +22,9 @@ else
     FQDN_SUFFIX=""
 fi
 
-# ++-----------------+
-# || Functions       |
-# ++-----------------+
-print_env() {
-  if [ ! -z $1 ] ; then
-
-    if [[ -f "${ASSETS}/env-$1.conf" ]] && [[ -s "${ASSETS}/env-$1.conf" ]] ;  then
-
-      cat ${ASSETS}/env-$1.conf
-
-    elif [ "$1" == "consul" ]; then
-
-      ## If the environment file does not exist prints current variables
-      ## This is used to export them in a file afted defining them in the script.
-      echo " export CONSUL_HTTP_ADDR=${CONSUL_HTTP_ADDR}"
-      echo " export CONSUL_HTTP_TOKEN=${CONSUL_HTTP_TOKEN}"
-      echo " export CONSUL_HTTP_SSL=${CONSUL_HTTP_SSL}"
-      echo " export CONSUL_CACERT=${CONSUL_CACERT}"
-      echo " export CONSUL_TLS_SERVER_NAME=${CONSUL_TLS_SERVER_NAME}"
-      echo " export CONSUL_FQDN_ADDR=${CONSUL_FQDN_ADDR}"
-
-    elif [ "$1" == "vault" ]; then
-
-      echo " export VAULT_ADDR=${VAULT_ADDR}"
-      echo " export VAULT_TOKEN=${VAULT_TOKEN}"
-
-    fi
-
-  else
-    # If no argument is passed prints all available environment files
-    for env_file in `find ${ASSETS} -name env-*`; do
-      
-      echo -e "\033[1m\033[31mENV: ${env_file}\033[0m"
-      cat ${env_file}
-      echo ""
-    done
-  fi
-}
-
+# # ++-----------------+
+# # || Functions       |
+# # ++-----------------+
 
 # ++-----------------+
 # || Begin           |
@@ -68,8 +32,28 @@ print_env() {
 
 if [ "${START_MONITORING_SUITE}" == "true" ]; then
 
+  log "Configuring DNS for monitoring suite"
+
+  ## ~todo: Cloud provider breaking point
+  ## The following steps only work on AWS. Use the reference link for ideas on
+  ## how to make platform independent.  
+  ## https://github.com/hashicorp-education/learn-nomad-getting-started/blob/main/shared/data-scripts/user-data-client.sh
+  export PROMETHEUS_URI=$(curl -s http://instance-data/latest/meta-data/local-ipv4)
+  export GRAFANA_URI=$(curl -s http://instance-data/latest/meta-data/public-ipv4)
+
+  # sudo cat <<EOT >> /etc/hosts
+  sudo tee -a /etc/hosts > /dev/null <<EOT
+
+# The following lines are used by the monitoring suite
+${PROMETHEUS_URI} mimir loki prometheus
+${GRAFANA_URI} grafana
+EOT
+
   log "Starting monitoring suite on Bastion Host"
   bash ${ASSETS}scenario/start_monitoring_suite.sh
 
+  
+
+  
 fi
 

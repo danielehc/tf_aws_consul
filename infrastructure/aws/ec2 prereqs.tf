@@ -12,6 +12,7 @@ ${aws_instance.frontend.private_ip} hashicups-frontend frontend
 ${aws_instance.api.private_ip} hashicups-api api
 ${aws_instance.database.private_ip} hashicups-db database db
 ${aws_instance.consul_server.0.private_ip} consul-server-0 consul server.${var.consul_datacenter}.${var.consul_domain}
+${aws_instance.gateway-api.private_ip} gateway-api gw-api
   EOF
 }
 
@@ -71,7 +72,7 @@ resource "aws_instance" "bastion" {
     ]
   }
   # ## Start Monitoring Suite
-  # provisioner "file" {
+  # provisioner "file" {aws_instance.bastion.public_ip
   #   content     = templatefile("${path.module}/scripts/start_monitoring_suite.sh.tmpl", {})
   #   destination = "/home/admin/start_app.sh" # remote machine
   # }

@@ -31,11 +31,6 @@ export STEP_ASSETS="${ASSETS}scenario/conf/"
 header1 "Starting Consul server"
 
 ##########################################################
-## -todo: [FEAT] Do we want to install Consul on the other nodes remotely?
-## -todo [REFACTOR] Maybe is better moved into Operator Setup.
-## header2 "Install Consul"
-
-##########################################################
 header2 "Generate Consul servers configuration"
 
 ## MARK: [script] generate_consul_server_config.sh
@@ -87,6 +82,7 @@ done
 ##########################################################
 header2 "Configure ACL"
 
+## Consul CLI Configuration
 export CONSUL_HTTP_ADDR="https://consul-server-0:8443"
 export CONSUL_HTTP_SSL=true
 export CONSUL_CACERT="${STEP_ASSETS}secrets/consul-agent-ca.pem"
@@ -114,6 +110,7 @@ for i in `seq 1 9`; do
 
 done
 
+## Consul CLI Configuration
 export CONSUL_HTTP_TOKEN=`cat ${STEP_ASSETS}secrets/acl-token-bootstrap.json | jq -r ".SecretID"`
 
 ##########################################################

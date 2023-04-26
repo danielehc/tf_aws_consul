@@ -70,6 +70,11 @@ service_prefix "" {
 query_prefix "" {
   policy = "read"
 }
+# needed for prometheus metrics
+agent_prefix ""
+{
+  policy = "read"
+}
 EOF
 
 tee ${OUTPUT_FOLDER}acl-policy-server-node.hcl > /dev/null << EOF
