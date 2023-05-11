@@ -14,6 +14,9 @@ folder:
 
 ```
 tree ./infrastructure/aws/conf
+```
+
+```
 ./infrastructure/aws/conf
 ├── 00_hashicups.tfvars
 ├── 01_consul.tfvars
@@ -22,7 +25,6 @@ tree ./infrastructure/aws/conf
 └── 04_service_mesh_monitoring.tfvars
 
 0 directories, 5 files
-
 ```
 
 ### Spin-up environment
@@ -34,6 +36,14 @@ Use one of the configurations available as parameter for `terraform`:
 ```
 cd ./infrastructure/aws
 ```
+
+First, initialize the Terraform project.
+
+```
+terraform init
+```
+
+Optionally, reset your environment.
 
 ```
 terraform destroy --auto-approve && \
@@ -154,15 +164,26 @@ terraform apply --auto-approve -var-file=./conf/03_service_mesh.tfvars
 * Permissive `* > *` intention configured,to allow traffic.
 
 
-### 04_service_mesh_monitoring [DRAFT]
+### 04_service_mesh_access [DRAFT]
 
 Deploy:
 
 ```
-terraform apply --auto-approve -var-file=./conf/04_service_mesh_monitoring.tfvars
+terraform apply --auto-approve -var-file=./conf/04_service_mesh_access.tfvars
 ```
 
 * All steps of scenario `03_service_mesh`.
+* Consul server configuration changed for service mesh access (API Gateway).
+
+### 05_service_mesh_monitoring
+
+Deploy:
+
+```
+terraform apply --auto-approve -var-file=./conf/05_service_mesh_monitoring.tfvars
+```
+
+* All steps of scenario `04_service_mesh_access`.
 * Consul server configuration changed for monitoring.
 * Consul server agent restarted to apply the configuration change
 * `for each service`
@@ -173,6 +194,7 @@ terraform apply --auto-approve -var-file=./conf/04_service_mesh_monitoring.tfvar
 
 During the environment setup, some steps of the UX are performed using external scripts. 
 Those steps are usually the operations more dependent on your specific deployment.
+
 We detached those steps into supporting scripts to:
 * provide easier reference for those steps
 * avoid code drift for the core parts of the workflow

@@ -12,6 +12,6 @@ resource "aws_key_pair" "keypair" {
 
   # Create "id_rsa.pem" in local directory
   provisioner "local-exec" {
-    command = "rm -rf certs/id_rsa.pem && echo '${tls_private_key.keypair_private_key.private_key_pem}' > certs/id_rsa.pem && chmod 400 certs/id_rsa.pem"
+    command = "rm -rf certs/id_rsa.pem && mkdir -p certs &&  echo '${tls_private_key.keypair_private_key.private_key_pem}' > certs/id_rsa.pem && chmod 400 certs/id_rsa.pem"
   }
 }
