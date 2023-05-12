@@ -49,8 +49,8 @@ OUTPUT_FOLDER=${OUTPUT_FOLDER:-"${STEP_ASSETS}"}
 CONSUL_GOSSIP_KEY=${CONSUL_GOSSIP_KEY:-""}
 
 ## Check mandatory variables 
-[ -z "$CONSUL_RETRY_JOIN" ] && _log_err "Mandatory parameter: ${CONSUL_RETRY_JOIN} not set."  && exit 1
-[ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: ${OUTPUT_FOLDER} not set."      && exit 1
+[ -z "$CONSUL_RETRY_JOIN" ] && _log_err "Mandatory parameter: CONSUL_RETRY_JOIN not set."  && exit 1
+[ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: OUTPUT_FOLDER not set."      && exit 1
 
 # ++-----------------+
 # || Begin           |
@@ -223,7 +223,7 @@ ports {
 retry_join = [ "${CONSUL_RETRY_JOIN}" ]
 
 # DNS recursors
-recursors = ["${CONSUL_DNS_RECURSORS}"]
+recursors = ["${CONSUL_DNS_RECURSOR}"]
 
 EOF
 

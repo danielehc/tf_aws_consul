@@ -9,5 +9,7 @@ assets/scenario/**
 .terraform*
 terraform.tfstate*
 
+*.DS_Store
+
 # *.pem
 # acl-token-bootstrap.json

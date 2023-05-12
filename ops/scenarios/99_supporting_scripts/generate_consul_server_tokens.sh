@@ -41,8 +41,8 @@ CONSUL_HTTPS_PORT=${CONSUL_HTTPS_PORT:-"8443"}
 OUTPUT_FOLDER=${OUTPUT_FOLDER:-"${STEP_ASSETS}"}
 
 ## Check mandatory variables 
-[ -z "$CONSUL_HTTP_TOKEN" ] && _log_err "Mandatory parameter: ${CONSUL_HTTP_TOKEN} not set."  && exit 1
-[ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: ${OUTPUT_FOLDER} not set."      && exit 1
+[ -z "$CONSUL_HTTP_TOKEN" ] && _log_err "Mandatory parameter: CONSUL_HTTP_TOKEN not set."  && exit 1
+[ -z "$OUTPUT_FOLDER" ]     && _log_err "Mandatory parameter: OUTPUT_FOLDER not set."      && exit 1
 
 # ++-----------------+
 # || Begin           |

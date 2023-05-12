@@ -16,10 +16,10 @@ ${aws_instance.gateway-api.private_ip} gateway-api gw-api
   EOF
 }
 
-data "template_file" "dns_extra_conf" {
-  template = local.bastion_fake_dns
-  vars = { }
-}
+# data "template_file" "dns_extra_conf" {
+#   template = local.bastion_fake_dns
+#   vars = { }
+# }
 
 resource "aws_instance" "bastion" {
   depends_on                  = [module.vpc]
@@ -42,7 +42,8 @@ resource "aws_instance" "bastion" {
     ssh_private_key = base64gzip("${tls_private_key.keypair_private_key.private_key_openssh}"),
     hostname        = "bastion",
     consul_version  = "${var.consul_version}",
-    HOSTS_EXTRA_CONFIG = base64gzip("${data.template_file.dns_extra_conf.rendered}")
+    # HOSTS_EXTRA_CONFIG = base64gzip("${data.template_file.dns_extra_conf.rendered}")
+    HOSTS_EXTRA_CONFIG = base64gzip("${local.bastion_fake_dns}")
   })
 
   connection {

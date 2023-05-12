@@ -174,6 +174,8 @@ remote_exec ${NODE_NAME} \
     -config-dir=${CONSUL_CONFIG_DIR} > /tmp/consul-client.log 2>&1 &" 
 
 
+sleep 2
+
 header2 "Generate API Gateway rules"
 
 
