@@ -106,9 +106,10 @@ DNS_TOK=`cat ${OUTPUT_FOLDER}secrets/acl-token-dns.json | jq -r ".SecretID"`
 _log "Generate server tokens"
 for i in `seq 0 "$((CONSUL_SERVER_NUMBER-1))"`; do
   
-  export CONSUL_HTTP_ADDR="https://consul-server-$i:${CONSUL_HTTPS_PORT}"
-  
   pushd "${OUTPUT_FOLDER}secrets"  > /dev/null 2>&1
+
+  export CONSUL_HTTP_ADDR="https://consul-server-$i:${CONSUL_HTTPS_PORT}"
+  export CONSUL_CACERT="./consul-agent-ca.pem"
 
   consul acl token create -description "consul-server-$i" -policy-name acl-policy-server-node  --format json > ./consul-server-$i-acl-token.json 2> /dev/null
 
@@ -121,3 +122,5 @@ for i in `seq 0 "$((CONSUL_SERVER_NUMBER-1))"`; do
 
 done
 
+export CONSUL_HTTP_ADDR="https://consul-server-0${FQDN_SUFFIX}:${CONSUL_HTTPS_PORT}"
+export CONSUL_CACERT="${OUTPUT_FOLDER}secrets/consul-agent-ca.pem"

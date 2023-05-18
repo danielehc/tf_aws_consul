@@ -16,11 +16,6 @@ ${aws_instance.gateway-api.private_ip} gateway-api gw-api
   EOF
 }
 
-# data "template_file" "dns_extra_conf" {
-#   template = local.bastion_fake_dns
-#   vars = { }
-# }
-
 resource "aws_instance" "bastion" {
   depends_on                  = [module.vpc]
   ami                         = data.aws_ami.debian-11.id
@@ -72,16 +67,6 @@ resource "aws_instance" "bastion" {
       "cd /home/admin/ops && bash ./provision.sh operate ${var.scenario}"
     ]
   }
-  # ## Start Monitoring Suite
-  # provisioner "file" {aws_instance.bastion.public_ip
-  #   content     = templatefile("${path.module}/scripts/start_monitoring_suite.sh.tmpl", {})
-  #   destination = "/home/admin/start_app.sh" # remote machine
-  # }
-
-  # provisioner "file" {
-  #   source      = "${path.module}/scripts/generate_consul_server_tokens.sh"
-  #   destination = "/home/admin/generate_consul_server_tokens.sh" # remote machine
-  # }
 
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 

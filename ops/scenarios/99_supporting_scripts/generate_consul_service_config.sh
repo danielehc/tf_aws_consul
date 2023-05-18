@@ -77,6 +77,12 @@ _header "[${NODE_NAME}]"
 
 _log "Parameter Check"
 
+## If a variable CONSUL_AGENT_TOKEN is set includes the token parameter to the 
+## service configuration
+if [ ! -z "${CONSUL_AGENT_TOKEN}" ]; then
+  _svc_token="token = \"${CONSUL_AGENT_TOKEN}\""
+fi
+
 ## If a variable _agent_token is set includes the token parameter to the 
 ## service configuration
 if [ ! -z "${_agent_token}" ]; then
@@ -175,6 +181,8 @@ fi
 
 
 ## Service Discovery File generation
+_log "Generating service definition for service discovery"
+
 tee svc/service_discovery/svc-${_svc_name}.hcl > /dev/null << EOF
 ## -----------------------------
 ## svc-${_svc_name}.hcl
@@ -191,6 +199,8 @@ service {
 EOF
 
 ## Service Mesh File generation
+_log "Generating service definition for service discovery"
+
 tee svc/service_mesh/svc-${_svc_name}.hcl > /dev/null << EOF
 ## svc-${_svc_name}.hcl
 service {
