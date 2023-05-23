@@ -199,7 +199,7 @@ service {
 EOF
 
 ## Service Mesh File generation
-_log "Generating service definition for service discovery"
+_log "Generating service definition for service mesh"
 
 tee svc/service_mesh/svc-${_svc_name}.hcl > /dev/null << EOF
 ## svc-${_svc_name}.hcl
