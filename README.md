@@ -172,6 +172,8 @@ Deploy:
 terraform apply --auto-approve -var-file=./conf/04_service_mesh_access.tfvars
 ```
 
+![04_service_mesh_access](docs/img/gs_vms-diagram-04.png)
+
 * All steps of scenario `03_service_mesh`.
 * Consul server configuration changed for service mesh access (API Gateway).
 
@@ -182,6 +184,10 @@ Deploy:
 ```
 terraform apply --auto-approve -var-file=./conf/05_service_mesh_monitoring.tfvars
 ```
+
+
+![04_service_mesh_monitoring](docs/img/gs_vms-diagram-05.png)
+
 
 * All steps of scenario `04_service_mesh_access`.
 * Consul server configuration changed for monitoring.
